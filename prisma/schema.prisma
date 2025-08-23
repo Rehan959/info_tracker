@@ -1,0 +1,305 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  clerkId   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  campaigns     Campaign[]
+  influencers   Influencer[]
+  activities    Activity[]
+  briefs        Brief[]
+  automations   Automation[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Influencer {
+  id          String   @id @default(cuid())
+  name        String
+  username    String
+  platform    Platform
+  followers   Int      @default(0)
+  engagement  Float    @default(0)
+  bio         String?
+  avatar      String?
+  website     String?
+  email       String?
+  phone       String?
+  location    String?
+  category    String?
+  status      InfluencerStatus @default(ACTIVE)
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns   CampaignInfluencer[]
+  posts       Post[]
+  activities  Activity[]
+
+  @@unique([username, platform, userId])
+  @@map("influencers")
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  budget      Float?
+  status      CampaignStatus @default(ACTIVE)
+  goals       String[]
+  metrics     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  influencers CampaignInfluencer[]
+  posts       Post[]
+  activities  Activity[]
+
+  @@map("campaigns")
+}
+
+model CampaignInfluencer {
+  id           String   @id @default(cuid())
+  campaignId   String
+  influencerId String
+  status       CampaignInfluencerStatus @default(INVITED)
+  rate         Float?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  campaign    Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  influencer  Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, influencerId])
+  @@map("campaign_influencers")
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String?
+  content     String
+  url         String
+  platform    Platform
+  postType    PostType
+  publishedAt DateTime
+  likes       Int      @default(0)
+  comments    Int      @default(0)
+  shares      Int      @default(0)
+  views       Int      @default(0)
+  engagement  Float    @default(0)
+  reach       Int      @default(0)
+  impressions Int      @default(0)
+  sentiment   Sentiment?
+  tags        String[]
+  mentions    String[]
+  hashtags    String[]
+  mediaUrls   String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  influencerId String
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  campaignId   String?
+  campaign     Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  activities   Activity[]
+
+  @@map("posts")
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  title       String
+  description String?
+  data        Json?
+  priority    Priority     @default(MEDIUM)
+  isRead      Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  influencerId String?
+  influencer  Influencer?  @relation(fields: [influencerId], references: [id], onDelete: SetNull)
+  campaignId  String?
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  postId      String?
+  post        Post?        @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@map("activities")
+}
+
+model Brief {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  summary     String?
+  timeRange   String
+  data        Json?
+  isGenerated Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("briefs")
+}
+
+model Automation {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        AutomationType
+  isActive    Boolean  @default(true)
+  config      Json
+  schedule    String?
+  lastRun     DateTime?
+  nextRun     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("automations")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  priority    Priority         @default(MEDIUM)
+  data        Json?
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Enums
+enum Platform {
+  INSTAGRAM
+  YOUTUBE
+  TIKTOK
+  TWITTER
+  LINKEDIN
+  FACEBOOK
+  TWITCH
+  PINTEREST
+  SNAPCHAT
+  TWITTER_X
+}
+
+enum InfluencerStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  BLACKLISTED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignInfluencerStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PostType {
+  POST
+  STORY
+  REEL
+  VIDEO
+  LIVE
+  IGTV
+  TWEET
+  THREAD
+  ARTICLE
+  SHORT
+}
+
+enum ActivityType {
+  NEW_POST
+  ENGAGEMENT_MILESTONE
+  FOLLOWER_MILESTONE
+  BRAND_MENTION
+  COMPETITOR_ACTIVITY
+  CAMPAIGN_UPDATE
+  PERFORMANCE_ALERT
+  TREND_DETECTED
+}
+
+enum AutomationType {
+  ENGAGEMENT_MONITORING
+  BRAND_MENTION_ALERT
+  COMPETITOR_TRACKING
+  PERFORMANCE_REPORT
+  CONTENT_SCHEDULING
+  INFLUENCER_DISCOVERY
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  ALERT
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}

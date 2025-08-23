@@ -13,11 +13,11 @@ export default clerkMiddleware(async (auth, req) => {
   // If it's not a public route, protect it
   if (!isPublicRoute(req)) {
     await auth.protect({
-      // Redirect unauthenticated users to the sign-in page
-      unauthenticatedUrl: '/sign-in',
+      // Redirect unauthenticated users to the sign-in page with absolute URL
+      unauthenticatedUrl: `${req.nextUrl.origin}/sign-in`,
       // Redirect authenticated users to dashboard if they try to access auth pages
-      afterSignInUrl: '/dashboard',
-      afterSignUpUrl: '/dashboard',
+      afterSignInUrl: `${req.nextUrl.origin}/dashboard`,
+      afterSignUpUrl: `${req.nextUrl.origin}/dashboard`,
     });
   }
 }, {

@@ -1,52 +1,67 @@
-import { Button } from "@/components/ui/button"
-import { TrendingUp, Bell, Plus, ArrowLeft } from "lucide-react"
+"use client"
+
 import Link from "next/link"
-import { UserButton } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
+import { TrendingUp, ArrowLeft, Bell, Plus } from "lucide-react"
+import { UserButton, useUser } from "@clerk/nextjs"
+import dynamic from "next/dynamic"
+
+// Dynamically import UserButton to avoid hydration issues
+const DynamicUserButton = dynamic(() => Promise.resolve(UserButton), {
+  ssr: false,
+  loading: () => <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
+})
 
 interface NavigationProps {
   showAuth?: boolean
   showBack?: boolean
   backUrl?: string
-  pageTitle?: string
   showNotifications?: boolean
   showAddInfluencer?: boolean
-  children?: React.ReactNode
+  title?: string
 }
 
-export function Navigation({
-  showAuth = false,
-  showBack = false,
+export function Navigation({ 
+  showAuth = false, 
+  showBack = false, 
   backUrl = "/landing",
-  pageTitle,
   showNotifications = false,
   showAddInfluencer = false,
-  children
+  title
 }: NavigationProps) {
+  const { isLoaded, isSignedIn } = useUser()
+
   return (
     <header className="border-b bg-card">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <TrendingUp className="h-4 w-4" />
+          {showBack ? (
+            <Link href={backUrl}>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <TrendingUp className="h-4 w-4" />
+              </div>
+              <h1 className="text-xl font-semibold">InfluenceTracker</h1>
+            </Link>
+          )}
+          
+          {title && (
+            <div className="ml-4">
+              <h2 className="text-lg font-medium">{title}</h2>
             </div>
-            <h1 className="text-xl font-semibold">InfluenceTracker</h1>
-          </Link>
-          {pageTitle && (
-            <>
-              <span className="text-muted-foreground">/</span>
-              <span className="text-sm font-medium">{pageTitle}</span>
-            </>
           )}
         </div>
-        
+
         <div className="flex items-center gap-3">
-          {children}
-          
           {showNotifications && (
             <Button variant="outline" size="sm">
-              <Bell className="h-4 w-4 mr-2" />
-              Notifications
+              <Bell className="h-4 w-4" />
             </Button>
           )}
           
@@ -58,9 +73,9 @@ export function Navigation({
               </Button>
             </Link>
           )}
-          
-          {showAuth && (
-            <>
+
+          {showAuth && !isSignedIn && (
+            <div className="flex items-center gap-2">
               <Link href="/sign-in">
                 <Button variant="outline" size="sm">
                   Sign In
@@ -71,19 +86,12 @@ export function Navigation({
                   Sign Up
                 </Button>
               </Link>
-            </>
+            </div>
           )}
-          
-          {showBack && (
-            <Link href={backUrl}>
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </Link>
+
+          {isLoaded && isSignedIn && (
+            <DynamicUserButton afterSignOutUrl="/landing" />
           )}
-          
-          {!showAuth && !showBack && <UserButton afterSignOutUrl="/landing" />}
         </div>
       </div>
     </header>
