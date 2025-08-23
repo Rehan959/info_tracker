@@ -1,161 +1,124 @@
-# InfluenceTracker
+# Influencer Monitoring Dashboard
 
-A comprehensive influencer monitoring platform that helps you track engagement, analyze performance, and discover new opportunities in real-time.
+A modern web application for monitoring and managing influencer marketing campaigns. Built with Next.js, React, and Tailwind CSS.
 
 ## Features
 
-### Landing Page
-- **Modern Design**: Beautiful, responsive landing page with consistent branding
-- **Call-to-Action**: Clear sign-in and sign-up buttons for user conversion
-- **Feature Showcase**: Highlights key platform capabilities
-- **Social Proof**: Displays user statistics and testimonials
-- **Professional Footer**: Complete with links to important pages
+- **Dashboard Analytics**: Real-time insights into influencer performance
+- **Content Management**: Track and organize influencer content
+- **Brief Generation**: AI-powered brief creation for campaigns
+- **Automation Tools**: Streamlined workflow automation
+- **User Authentication**: Secure login and signup with Clerk
+- **Responsive Design**: Mobile-first approach with modern UI
 
-### User Dashboard
-- **Welcome Section**: Personalized greeting for returning users
-- **Key Metrics**: Real-time statistics including:
-  - Total Influencers
-  - Active Campaigns
-  - Average Engagement
-  - Next Brief Schedule
-- **Recent Activity**: Live feed of influencer activities
-- **Quick Actions**: Easy access to common tasks
-- **Performance Overview**: Monthly campaign performance metrics
+## Tech Stack
 
-### Authentication
-- **Clerk Integration**: Secure authentication with Clerk
-- **Sign In/Sign Up Pages**: Consistent styling with the main application
-- **Protected Routes**: Middleware ensures proper authentication flow
-- **User Management**: Built-in user profile and sign-out functionality
-
-## Pages
-
-### Public Pages
-- `/` - Redirects to landing page
-- `/landing` - Main landing page with sign-in/sign-up options
-- `/sign-in` - Authentication page
-- `/sign-up` - Registration page
-
-### Protected Pages
-- `/dashboard` - Main user dashboard (requires authentication)
-- `/influencers` - Influencer management
-- `/content` - Content monitoring
-- `/briefs` - Trend briefs
-- `/automation` - Automation settings
-
-## Technology Stack
-
-- **Framework**: Next.js 14 with App Router
-- **Styling**: Tailwind CSS with shadcn/ui components
+- **Framework**: Next.js 15
+- **Language**: TypeScript/JavaScript
+- **Styling**: Tailwind CSS
 - **Authentication**: Clerk
+- **UI Components**: Radix UI
 - **Icons**: Lucide React
-- **TypeScript**: Full type safety
+- **Forms**: React Hook Form + Zod
+- **Charts**: Recharts
+- **AI Integration**: AI SDK
 
 ## Getting Started
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+### Prerequisites
 
-2. **Environment Setup**
-   Create a `.env.local` file with your Clerk credentials:
-   ```
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-   CLERK_SECRET_KEY=your_clerk_secret_key
-   ```
+- Node.js 18+ 
+- pnpm (recommended) or npm
 
-3. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
+### Installation
 
-4. **Open Browser**
-   Navigate to `http://localhost:3000`
-
-## Navigation Flow
-
-1. **Landing Page** (`/landing`) - Public page with sign-in/sign-up options
-2. **Authentication** (`/sign-in` or `/sign-up`) - User authentication
-3. **Dashboard** (`/dashboard`) - Main application after authentication
-4. **Feature Pages** - Access to all platform features
-
-## Component Structure
-
-### Shared Components
-- `Navigation` - Consistent header across all pages
-- `Card` - Reusable card components
-- `Button` - Styled button components
-
-### Page Components
-- `LandingPage` - Main marketing page
-- `UserDashboard` - Authenticated user dashboard
-- `SignInPage` - Authentication page
-- `SignUpPage` - Registration page
-
-## Styling
-
-The application uses a consistent design system with:
-- **Color Scheme**: Primary, secondary, and muted colors
-- **Typography**: Geist Sans font family
-- **Spacing**: Consistent padding and margins
-- **Components**: shadcn/ui component library
-- **Responsive**: Mobile-first design approach
-
-## Authentication Flow
-
-1. User visits landing page
-2. Clicks "Sign In" or "Sign Up"
-3. Completes authentication with Clerk
-4. Redirected to dashboard
-5. Can access all protected features
-
-## Middleware
-
-The application uses Clerk middleware to:
-- Protect routes requiring authentication
-- Allow public access to landing and auth pages
-- Redirect unauthenticated users to sign-in page
-- Handle authentication state properly
-
-## Development
-
-### File Structure
-```
-app/
-├── landing/          # Landing page
-├── sign-in/          # Sign in page
-├── sign-up/          # Sign up page
-├── dashboard/        # User dashboard
-├── auth/             # Clerk auth pages
-├── influencers/      # Influencer management
-├── content/          # Content monitoring
-├── briefs/           # Trend briefs
-├── automation/       # Automation settings
-└── layout.tsx        # Root layout
-
-components/
-├── navigation.tsx    # Shared navigation
-└── ui/              # shadcn/ui components
+1. Clone the repository:
+```bash
+git clone https://github.com/Rehan959/info_tracker.git
+cd info_tracker
 ```
 
-### Key Features Implemented
+2. Install dependencies:
+```bash
+pnpm install
+# or
+npm install
+```
 
-✅ **Landing Page** - Complete marketing page with sign-in/sign-up
-✅ **User Dashboard** - Comprehensive dashboard with metrics and actions
-✅ **Authentication** - Secure sign-in/sign-up flow
-✅ **Navigation** - Consistent header across all pages
-✅ **Responsive Design** - Mobile-friendly interface
-✅ **Type Safety** - Full TypeScript implementation
-✅ **Middleware** - Proper route protection
-✅ **Component Reusability** - Shared navigation component
+3. Set up environment variables:
+Create a `.env.local` file in the root directory and add your configuration:
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+OPENAI_API_KEY=your_openai_api_key
+```
 
-## Next Steps
+4. Run the development server:
+```bash
+pnpm dev
+# or
+npm run dev
+```
 
-Potential enhancements for future development:
-- User profile management
-- Advanced analytics dashboard
-- Email notifications
-- API integrations
-- Mobile app
-- Team collaboration features
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Project Structure
+
+```
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Main dashboard
+│   ├── briefs/           # Brief management
+│   ├── content/          # Content tracking
+│   ├── influencers/      # Influencer management
+│   └── automation/       # Automation tools
+├── components/           # Reusable UI components
+│   └── ui/              # Shadcn/ui components
+├── lib/                 # Utility functions
+├── hooks/               # Custom React hooks
+└── public/              # Static assets
+```
+
+## Available Scripts
+
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
+
+## Deployment
+
+This project can be deployed to various platforms:
+
+### Vercel (Recommended)
+1. Connect your GitHub repository to Vercel
+2. Set up environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Netlify
+1. Connect your GitHub repository to Netlify
+2. Set build command: `pnpm build`
+3. Set publish directory: `out`
+4. Configure environment variables
+
+### Manual Deployment
+1. Build the project: `pnpm build`
+2. Export static files: `pnpm export`
+3. Deploy the `out` directory to your hosting provider
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Commit your changes: `git commit -am 'Add feature'`
+4. Push to the branch: `git push origin feature-name`
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support and questions, please open an issue on GitHub.
