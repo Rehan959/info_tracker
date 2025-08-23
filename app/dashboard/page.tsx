@@ -1,12 +1,19 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, TrendingUp, Clock, Bell, Settings, User, LogOut } from "lucide-react"
+import { Plus, Users, TrendingUp, Clock, Bell, Settings, User, LogOut, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { UserButton } from "@clerk/nextjs"
+import { UserButton, useUser } from "@clerk/nextjs"
 import { Navigation } from "@/components/navigation"
 
 export default function UserDashboard() {
+  const { user, isLoaded } = useUser()
+
+  // Get user's first name or fallback to "User"
+  const firstName = user?.firstName || user?.username || "User"
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation showNotifications={true} showAddInfluencer={true} />
@@ -15,13 +22,16 @@ export default function UserDashboard() {
       <main className="p-6">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-2">Welcome back, User!</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-2xl font-bold">Welcome back, {firstName}! 👋</h2>
+            <Sparkles className="h-5 w-5 text-yellow-500" />
+          </div>
           <p className="text-muted-foreground">Here's what's happening with your influencer campaigns today.</p>
         </div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Influencers</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -32,7 +42,7 @@ export default function UserDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -43,7 +53,7 @@ export default function UserDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -54,7 +64,7 @@ export default function UserDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Next Brief</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -69,13 +79,13 @@ export default function UserDashboard() {
         {/* Recent Activity & Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Activity */}
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>Latest updates from your monitored influencers</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                     <span className="text-xs font-medium">JD</span>
@@ -88,7 +98,7 @@ export default function UserDashboard() {
                 <Badge variant="secondary">New</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
                     <span className="text-xs font-medium">SM</span>
@@ -101,7 +111,7 @@ export default function UserDashboard() {
                 <Badge variant="secondary">Milestone</Badge>
               </div>
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
                     <span className="text-xs font-medium">TC</span>
@@ -117,32 +127,32 @@ export default function UserDashboard() {
           </Card>
 
           {/* Quick Actions */}
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
               <CardDescription>Manage your influencer monitoring</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Link href="/influencers">
-                <Button className="w-full justify-start bg-transparent" variant="outline">
+                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <Plus className="h-4 w-4 mr-2" />
                   Add New Influencer
                 </Button>
               </Link>
               <Link href="/content">
-                <Button className="w-full justify-start bg-transparent" variant="outline">
+                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <TrendingUp className="h-4 w-4 mr-2" />
                   View Content Monitor
                 </Button>
               </Link>
               <Link href="/briefs">
-                <Button className="w-full justify-start bg-transparent" variant="outline">
+                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <Clock className="h-4 w-4 mr-2" />
                   Generate Trend Brief
                 </Button>
               </Link>
               <Link href="/automation">
-                <Button className="w-full justify-start bg-transparent" variant="outline">
+                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <Settings className="h-4 w-4 mr-2" />
                   Setup Automation
                 </Button>
@@ -153,7 +163,7 @@ export default function UserDashboard() {
 
         {/* Performance Overview */}
         <div className="mt-8">
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardHeader>
               <CardTitle>Performance Overview</CardTitle>
               <CardDescription>Your influencer campaign performance this month</CardDescription>

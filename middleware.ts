@@ -15,6 +15,9 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect({
       // Redirect unauthenticated users to the sign-in page
       unauthenticatedUrl: '/sign-in',
+      // Redirect authenticated users to dashboard if they try to access auth pages
+      afterSignInUrl: '/dashboard',
+      afterSignUpUrl: '/dashboard',
     });
   }
 }, {
