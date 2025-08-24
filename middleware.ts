@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   '/analytics',
   '/add-influencer',
   '/api/influencers/fetch-profile',
+  '/api/webhooks/clerk',
+  '/api/users/sync',
   '/auth/login(.*)',
   '/auth/signup(.*)',
 ]);

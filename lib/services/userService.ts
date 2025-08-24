@@ -1,73 +1,56 @@
 import { prisma } from '@/lib/prisma'
-import { User } from '@prisma/client'
 
 export class UserService {
-  static async findOrCreateUser(clerkId: string, email: string, name?: string): Promise<User> {
-    let user = await prisma.user.findUnique({
-      where: { clerkId }
-    })
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
+  static async findOrCreateUser(clerkId: string, email: string, name?: string) {
+    try {
+      const user = await prisma.user.upsert({
+        where: { clerkId },
+        update: {
+          email,
+          name: name || null,
+          updatedAt: new Date()
+        },
+        create: {
           clerkId,
           email,
-          name
+          name: name || null
         }
       })
+
+      return user
+    } catch (error) {
+      console.error('Error in findOrCreateUser:', error)
+      throw error
     }
-
-    return user
   }
 
-  static async getUserById(clerkId: string): Promise<User | null> {
-    return await prisma.user.findUnique({
-      where: { clerkId },
-      include: {
-        _count: {
-          select: {
-            campaigns: true,
-            influencers: true,
-            activities: true,
-            briefs: true,
-            automations: true,
-            notifications: true
-          }
-        }
+  static async getUserByClerkId(clerkId: string) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { clerkId }
+      })
+
+      if (!user) {
+        // Try to create user if not found
+        console.log(`User not found, attempting to create: ${clerkId}`)
+        return null
       }
-    })
+
+      return user
+    } catch (error) {
+      console.error('Error in getUserByClerkId:', error)
+      throw error
+    }
   }
 
-  static async updateUser(clerkId: string, data: Partial<User>): Promise<User> {
-    return await prisma.user.update({
-      where: { clerkId },
-      data
-    })
-  }
-
-  static async getUserStats(clerkId: string) {
-    const user = await this.getUserById(clerkId)
-    if (!user) return null
-
-    const [
-      totalInfluencers,
-      activeCampaigns,
-      totalPosts,
-      totalActivities
-    ] = await Promise.all([
-      prisma.influencer.count({ where: { userId: user.id } }),
-      prisma.campaign.count({ where: { userId: user.id, status: 'ACTIVE' } }),
-      prisma.post.count({ 
-        where: { influencer: { userId: user.id } } 
-      }),
-      prisma.activity.count({ where: { userId: user.id } })
-    ])
-
-    return {
-      totalInfluencers,
-      activeCampaigns,
-      totalPosts,
-      totalActivities
+  static async syncUserFromClerk(clerkId: string, email: string, name?: string) {
+    try {
+      const user = await this.findOrCreateUser(clerkId, email, name)
+      console.log(`✅ User synced successfully: ${email} (${clerkId})`)
+      return user
+    } catch (error) {
+      console.error('Error syncing user from Clerk:', error)
+      throw error
     }
   }
 }

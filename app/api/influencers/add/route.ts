@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { UserService } from '@/lib/services/userService'
 
 interface AddInfluencerRequest {
   url: string
@@ -36,16 +37,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
+    // Get or create user from database
+    let user = await UserService.getUserByClerkId(userId)
+    
     if (!user) {
-      return NextResponse.json(
-        { error: `User not found with Clerk ID: ${userId}` },
-        { status: 404 }
-      )
+      // Try to get user info from Clerk and create if needed
+      try {
+        // For now, create a basic user - in production you'd get this from Clerk API
+        user = await UserService.findOrCreateUser(
+          userId, 
+          `user-${userId}@example.com`, // Placeholder email
+          'User' // Placeholder name
+        )
+        console.log(`✅ Created new user for Clerk ID: ${userId}`)
+      } catch (error) {
+        console.error('Failed to create user:', error)
+        return NextResponse.json(
+          { error: 'Failed to create user account' },
+          { status: 500 }
+        )
+      }
     }
 
     // Check if influencer already exists for this user

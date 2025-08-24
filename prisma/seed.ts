@@ -37,7 +37,7 @@ async function main() {
       data: {
         userId: user.id,
         name: 'Sarah Johnson',
-        username: 'sarahmarketing',
+        username: 'sarahmarketing_linkedin',
         platform: Platform.LINKEDIN,
         followers: 125000,
         engagement: 4.8,
@@ -50,7 +50,7 @@ async function main() {
       data: {
         userId: user.id,
         name: 'TechCrunch',
-        username: 'techcrunch',
+        username: 'techcrunch_youtube',
         platform: Platform.YOUTUBE,
         followers: 4500000,
         engagement: 3.2,
@@ -63,7 +63,7 @@ async function main() {
       data: {
         userId: user.id,
         name: 'John Doe',
-        username: 'johndoe',
+        username: 'johndoe_instagram',
         platform: Platform.INSTAGRAM,
         followers: 89000,
         engagement: 6.1,
@@ -76,7 +76,7 @@ async function main() {
       data: {
         userId: user.id,
         name: 'Emma Wilson',
-        username: 'emmawilson',
+        username: 'emmawilson_tiktok',
         platform: Platform.TIKTOK,
         followers: 320000,
         engagement: 8.5,
@@ -88,6 +88,38 @@ async function main() {
   ])
 
   console.log('✅ Created', influencers.length, 'influencers')
+
+  // Create sample influencers for current user
+  const currentUserInfluencers = await Promise.all([
+    prisma.influencer.create({
+      data: {
+        userId: currentUser.id,
+        name: 'Cristiano Ronaldo',
+        username: 'cristiano_instagram',
+        platform: Platform.INSTAGRAM,
+        followers: 650000000,
+        engagement: 8.2,
+        bio: 'Professional Footballer | CR7 Brand',
+        category: 'Sports',
+        isVerified: true
+      }
+    }),
+    prisma.influencer.create({
+      data: {
+        userId: currentUser.id,
+        name: 'Elon Musk',
+        username: 'elonmusk_twitter',
+        platform: Platform.TWITTER_X,
+        followers: 180000000,
+        engagement: 12.5,
+        bio: 'CEO of Tesla and SpaceX',
+        category: 'Technology',
+        isVerified: true
+      }
+    })
+  ])
+
+  console.log('✅ Created', currentUserInfluencers.length, 'influencers for current user')
 
   // Create sample campaigns
   const campaigns = await Promise.all([
