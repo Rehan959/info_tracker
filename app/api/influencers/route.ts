@@ -2,73 +2,46 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 
-// GET /api/influencers - Get all influencers for current user
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth()
     
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
+    // Get user from database
     const user = await prisma.user.findUnique({
       where: { clerkId: userId }
     })
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
     }
 
-    const { searchParams } = new URL(request.url)
-    const platform = searchParams.get('platform')
-    const status = searchParams.get('status')
-    const category = searchParams.get('category')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const skip = (page - 1) * limit
-
-    const where: any = {
-      userId: user.id
-    }
-
-    if (platform) where.platform = platform
-    if (status) where.status = status
-    if (category) where.category = category
-
-    const [influencers, total] = await Promise.all([
-      prisma.influencer.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              posts: true,
-              campaigns: true
-            }
-          },
-          posts: {
-            take: 5,
-            orderBy: { publishedAt: 'desc' }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit
-      }),
-      prisma.influencer.count({ where })
-    ])
+    // Fetch all influencers for this user
+    const influencers = await prisma.influencer.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    })
 
     return NextResponse.json({
-      influencers,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      success: true,
+      influencers: influencers
     })
+
   } catch (error) {
-    console.error('Error fetching influencers:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Get Influencers API Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch influencers' },
+      { status: 500 }
+    )
   }
 }
 

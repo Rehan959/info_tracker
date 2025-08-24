@@ -141,7 +141,6 @@ export async function PUT(
   }
 }
 
-// DELETE /api/influencers/[id] - Delete influencer
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -150,35 +149,56 @@ export async function DELETE(
     const { userId } = await auth()
     
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
+    const { id } = params
+
+    // Get user from database
     const user = await prisma.user.findUnique({
       where: { clerkId: userId }
     })
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
     }
 
+    // Check if influencer belongs to this user
     const influencer = await prisma.influencer.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id
       }
     })
 
     if (!influencer) {
-      return NextResponse.json({ error: 'Influencer not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Influencer not found' },
+        { status: 404 }
+      )
     }
 
+    // Delete the influencer
     await prisma.influencer.delete({
-      where: { id: params.id }
+      where: { id: id }
     })
 
-    return NextResponse.json({ message: 'Influencer deleted successfully' })
+    return NextResponse.json({
+      success: true,
+      message: 'Influencer deleted successfully'
+    })
+
   } catch (error) {
-    console.error('Error deleting influencer:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Delete Influencer API Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete influencer' },
+      { status: 500 }
+    )
   }
 }

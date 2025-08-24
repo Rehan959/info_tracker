@@ -21,7 +21,7 @@ interface DashboardData {
     totalInfluencers: number
     activeCampaigns: number
     avgEngagement: number
-    nextBrief: string
+    nextBrief: string | null
   }
   performance: {
     totalReach: number
@@ -32,9 +32,18 @@ interface DashboardData {
     avgShares: number
     avgViews: number
   }
-  recentPosts: any[]
-  recentActivities: any[]
-  topInfluencers: any[]
+  recentActivities: Array<{
+    id: string
+    title: string
+    description: string | null
+    type: string
+    createdAt: string
+    influencer?: {
+      name: string
+      username: string
+      platform: string
+    } | null
+  }>
 }
 
 export default function UserDashboard() {
@@ -53,14 +62,29 @@ export default function UserDashboard() {
   const firstName = user?.firstName || user?.username || "User"
 
   useEffect(() => {
-    // Simulate loading for better UX
+    // Fetch real dashboard data
     if (!isLoaded || !user || !mounted) return
 
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/dashboard')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data')
+        }
+        
+        const data = await response.json()
+        setDashboardData(data)
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+        setError('Failed to load dashboard data')
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    return () => clearTimeout(timer)
+    fetchDashboardData()
   }, [isLoaded, user, mounted])
 
   // Don't render until mounted to prevent hydration issues
@@ -113,50 +137,25 @@ export default function UserDashboard() {
     )
   }
 
-  // Use real data or fallback to static data
+  // Use real data or fallback to empty state
   const stats = dashboardData?.stats || {
-    totalInfluencers: 24,
-    activeCampaigns: 8,
-    avgEngagement: 4.2,
-    nextBrief: new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString()
+    totalInfluencers: 0,
+    activeCampaigns: 0,
+    avgEngagement: 0,
+    nextBrief: null
   }
 
   const performance = dashboardData?.performance || {
-    totalReach: 2400000,
-    totalImpressions: 3000000,
-    estimatedValue: 45000,
-    avgLikes: 1250,
-    avgComments: 89,
-    avgShares: 45,
-    avgViews: 8500
+    totalReach: 0,
+    totalImpressions: 0,
+    estimatedValue: 0,
+    avgLikes: 0,
+    avgComments: 0,
+    avgShares: 0,
+    avgViews: 0
   }
 
-  const recentActivities = dashboardData?.recentActivities || [
-    {
-      id: '1',
-      title: '@johndoe posted new content',
-      description: 'John Doe posted new content about travel',
-      type: 'NEW_POST',
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      influencer: { name: 'John Doe', username: 'johndoe', platform: 'INSTAGRAM' }
-    },
-    {
-      id: '2',
-      title: '@sarahmarketing hit 100K followers',
-      description: 'Sarah Marketing reached 100K followers',
-      type: 'ENGAGEMENT_MILESTONE',
-      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      influencer: { name: 'Sarah Marketing', username: 'sarahmarketing', platform: 'LINKEDIN' }
-    },
-    {
-      id: '3',
-      title: '@techcrunch mentioned your brand',
-      description: 'TechCrunch mentioned your brand in their latest video',
-      type: 'BRAND_MENTION',
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      influencer: { name: 'TechCrunch', username: 'techcrunch', platform: 'YOUTUBE' }
-    }
-  ]
+  const recentActivities = dashboardData?.recentActivities || []
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,7 +181,9 @@ export default function UserDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalInfluencers}</div>
-              <p className="text-xs text-muted-foreground">+2 from last week</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.totalInfluencers > 0 ? '+2 from last week' : 'No influencers yet'}
+              </p>
             </CardContent>
           </Card>
 
@@ -193,7 +194,9 @@ export default function UserDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.activeCampaigns}</div>
-              <p className="text-xs text-muted-foreground">3 ending this week</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.activeCampaigns > 0 ? '3 ending this week' : 'No active campaigns'}
+              </p>
             </CardContent>
           </Card>
 
@@ -204,7 +207,9 @@ export default function UserDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.avgEngagement}%</div>
-              <p className="text-xs text-muted-foreground">+0.3% from last period</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.avgEngagement > 0 ? '+0.3% from last period' : 'No engagement data'}
+              </p>
             </CardContent>
           </Card>
 
@@ -214,8 +219,15 @@ export default function UserDashboard() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">18h</div>
-              <p className="text-xs text-muted-foreground">Auto-generated report</p>
+              <div className="text-2xl font-bold">
+                {stats.nextBrief ? 
+                  Math.ceil((new Date(stats.nextBrief).getTime() - Date.now()) / (1000 * 60 * 60)) + 'h' : 
+                  'No upcoming'
+                }
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {stats.nextBrief ? 'Auto-generated report' : 'No briefs scheduled'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -229,32 +241,39 @@ export default function UserDashboard() {
               <CardDescription>Latest updates from your monitored influencers</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={activity.id || index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                      activity.type === 'NEW_POST' ? 'bg-blue-100' :
-                      activity.type === 'ENGAGEMENT_MILESTONE' ? 'bg-green-100' :
-                      'bg-red-100'
-                    }`}>
-                      <span className="text-xs font-medium">
-                        {activity.influencer?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                      </span>
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity, index) => (
+                  <div key={activity.id || index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        activity.type === 'NEW_POST' ? 'bg-blue-100' :
+                        activity.type === 'ENGAGEMENT_MILESTONE' ? 'bg-green-100' :
+                        'bg-red-100'
+                      }`}>
+                        <span className="text-xs font-medium">
+                          {activity.influencer?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{activity.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.influencer?.platform} • {new Date(activity.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.influencer?.platform} • {new Date(activity.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
+                    <Badge variant="secondary">
+                      {activity.type === 'NEW_POST' ? 'New' :
+                       activity.type === 'ENGAGEMENT_MILESTONE' ? 'Milestone' :
+                       'Mention'}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary">
-                    {activity.type === 'NEW_POST' ? 'New' :
-                     activity.type === 'ENGAGEMENT_MILESTONE' ? 'Milestone' :
-                     'Mention'}
-                  </Badge>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-2">No recent activities</div>
+                  <p className="text-sm text-muted-foreground">Activities will appear here as you monitor influencers</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
@@ -304,24 +323,39 @@ export default function UserDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">
-                    {(performance.totalReach / 1000000).toFixed(1)}M
+                    {performance.totalReach > 0 ? 
+                      (performance.totalReach / 1000000).toFixed(1) + 'M' : 
+                      '0'
+                    }
                   </div>
                   <div className="text-sm text-muted-foreground">Total Reach</div>
-                  <div className="text-xs text-green-600 mt-1">+12% vs last month</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary mb-2">
-                    {(performance.totalImpressions / 1000).toFixed(0)}K
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {performance.totalReach > 0 ? '+12% vs last month' : 'No data yet'}
                   </div>
-                  <div className="text-sm text-muted-foreground">Total Engagement</div>
-                  <div className="text-xs text-green-600 mt-1">+8% vs last month</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">
-                    ${(performance.estimatedValue / 1000).toFixed(0)}K
+                    {performance.totalImpressions > 0 ? 
+                      (performance.totalImpressions / 1000).toFixed(0) + 'K' : 
+                      '0'
+                    }
+                  </div>
+                  <div className="text-sm text-muted-foreground">Total Impressions</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {performance.totalImpressions > 0 ? '+8% vs last month' : 'No data yet'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary mb-2">
+                    {performance.estimatedValue > 0 ? 
+                      '$' + (performance.estimatedValue / 1000).toFixed(0) + 'K' : 
+                      '$0'
+                    }
                   </div>
                   <div className="text-sm text-muted-foreground">Estimated Value</div>
-                  <div className="text-xs text-green-600 mt-1">+15% vs last month</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {performance.estimatedValue > 0 ? '+15% vs last month' : 'No data yet'}
+                  </div>
                 </div>
               </div>
             </CardContent>

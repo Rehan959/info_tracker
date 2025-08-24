@@ -43,6 +43,7 @@ model Influencer {
   phone       String?
   location    String?
   category    String?
+  profileUrl  String?
   status      InfluencerStatus @default(ACTIVE)
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())

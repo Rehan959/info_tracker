@@ -34,8 +34,9 @@ export default function SignupPage() {
                   formButtonPrimary: "bg-primary hover:bg-primary/90"
                 }
               }}
-              redirectUrl="/"
+              redirectUrl="/dashboard"
               signInUrl="/auth/login"
+              afterSignUpUrl="/dashboard"
             />
           </CardContent>
         </Card>

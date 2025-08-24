@@ -42,7 +42,7 @@ export default function NotFound() {
                   Go to Dashboard
                 </Button>
               </Link>
-              <Link href="/sign-in">
+              <Link href="/auth/login">
                 <Button variant="outline" className="w-full justify-start">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Sign In

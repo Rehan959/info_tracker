@@ -3,8 +3,11 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 const isPublicRoute = createRouteMatcher([
   '/',
   '/landing',
-  '/sign-in',
-  '/sign-up',
+  '/demo',
+  '/demo-analytics',
+  '/analytics',
+  '/add-influencer',
+  '/api/influencers/fetch-profile',
   '/auth/login(.*)',
   '/auth/signup(.*)',
 ]);
@@ -14,10 +17,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect({
       // Redirect unauthenticated users to the sign-in page with absolute URL
-      unauthenticatedUrl: `${req.nextUrl.origin}/sign-in`,
-      // Redirect authenticated users to dashboard if they try to access auth pages
-      afterSignInUrl: `${req.nextUrl.origin}/dashboard`,
-      afterSignUpUrl: `${req.nextUrl.origin}/dashboard`,
+      unauthenticatedUrl: `${req.nextUrl.origin}/auth/login`,
     });
   }
 }, {

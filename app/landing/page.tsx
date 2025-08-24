@@ -26,7 +26,7 @@ export default function LandingPage() {
             analyze performance, and discover new opportunities in real-time.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/sign-up">
+            <Link href="/auth/signup">
               <Button size="lg" className="w-full sm:w-auto">
                 Get Started Free
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -171,7 +171,7 @@ export default function LandingPage() {
             Join thousands of brands already using InfluenceTracker to monitor their influencer campaigns
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/sign-up">
+            <Link href="/auth/signup">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto">
                 Start Free Trial
                 <ArrowRight className="h-4 w-4 ml-2" />

@@ -1,124 +1,186 @@
-# Influencer Monitoring Dashboard
+# 🚀 InfluenceTracker - Influencer Monitoring Platform
 
-A modern web application for monitoring and managing influencer marketing campaigns. Built with Next.js, React, and Tailwind CSS.
+A modern, full-stack influencer monitoring application built with Next.js 14, Clerk authentication, and Neon PostgreSQL database.
 
-## Features
+## ✨ Features
 
-- **Dashboard Analytics**: Real-time insights into influencer performance
-- **Content Management**: Track and organize influencer content
-- **Brief Generation**: AI-powered brief creation for campaigns
-- **Automation Tools**: Streamlined workflow automation
-- **User Authentication**: Secure login and signup with Clerk
-- **Responsive Design**: Mobile-first approach with modern UI
+- **🔐 Authentication** - Secure sign-in/sign-up with Clerk
+- **📊 Dashboard** - Real-time influencer campaign analytics
+- **👥 User Management** - Profile management and user statistics
+- **📈 Campaign Tracking** - Monitor influencer campaigns and performance
+- **🔔 Notifications** - Real-time activity notifications
+- **📱 Responsive Design** - Works perfectly on all devices
+- **⚡ Fast Performance** - Optimized for speed and user experience
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Framework**: Next.js 15
-- **Language**: TypeScript/JavaScript
-- **Styling**: Tailwind CSS
+- **Frontend**: Next.js 14 (App Router), React 19, TypeScript
 - **Authentication**: Clerk
-- **UI Components**: Radix UI
+- **Database**: Neon PostgreSQL
+- **ORM**: Prisma
+- **Styling**: Tailwind CSS, shadcn/ui
 - **Icons**: Lucide React
-- **Forms**: React Hook Form + Zod
-- **Charts**: Recharts
-- **AI Integration**: AI SDK
+- **Deployment**: Vercel (recommended)
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 18+ 
-- pnpm (recommended) or npm
+- npm or yarn
+- Neon PostgreSQL database
+- Clerk account
 
 ### Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/Rehan959/info_tracker.git
-cd info_tracker
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Rehan959/info_tracker.git
+   cd info_tracker
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Update `.env.local` with your credentials:
+   ```env
+   # Clerk Authentication
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+   CLERK_SECRET_KEY=your_clerk_secret_key
+   CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+
+   # Database (Neon PostgreSQL)
+   DATABASE_URL="your_neon_database_url"
+
+   # OpenAI (for AI features)
+   OPENAI_API_KEY=your_openai_api_key
+   ```
+
+4. **Set up the database**
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+
+5. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 📁 Project Structure
+
 ```
-
-2. Install dependencies:
-```bash
-pnpm install
-# or
-npm install
-```
-
-3. Set up environment variables:
-Create a `.env.local` file in the root directory and add your configuration:
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
-OPENAI_API_KEY=your_openai_api_key
-```
-
-4. Run the development server:
-```bash
-pnpm dev
-# or
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-├── app/                    # Next.js app directory
+├── app/                    # Next.js App Router
 │   ├── api/               # API routes
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Main dashboard
-│   ├── briefs/           # Brief management
-│   ├── content/          # Content tracking
-│   ├── influencers/      # Influencer management
-│   └── automation/       # Automation tools
-├── components/           # Reusable UI components
-│   └── ui/              # Shadcn/ui components
-├── lib/                 # Utility functions
-├── hooks/               # Custom React hooks
-└── public/              # Static assets
+│   ├── dashboard/         # User dashboard
+│   ├── landing/           # Landing page
+│   ├── sign-in/           # Sign-in page
+│   ├── sign-up/           # Sign-up page
+│   └── not-found.tsx      # 404 page
+├── components/            # Reusable components
+│   ├── ui/               # shadcn/ui components
+│   └── navigation.tsx    # Navigation component
+├── lib/                  # Utility libraries
+│   ├── prisma.ts         # Prisma client
+│   └── services/         # Business logic services
+├── prisma/               # Database schema and migrations
+└── public/               # Static assets
 ```
 
-## Available Scripts
+## 🔧 Available Scripts
 
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm lint` - Run ESLint
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run db:push` - Push database schema
+- `npm run db:seed` - Seed database with sample data
+- `npm run db:studio` - Open Prisma Studio
 
-## Deployment
+## 🌐 API Endpoints
 
-This project can be deployed to various platforms:
+- `GET /api/users` - Get user profile
+- `POST /api/users` - Create/update user profile
+- `GET /api/influencers` - Get all influencers
+- `POST /api/influencers` - Create new influencer
+- `GET /api/campaigns` - Get all campaigns
+- `POST /api/campaigns` - Create new campaign
+- `GET /api/dashboard` - Get dashboard data
+- `POST /api/webhooks/clerk` - Clerk webhook handler
 
-### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Set up environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
+## 🔐 Authentication Flow
 
-### Netlify
-1. Connect your GitHub repository to Netlify
-2. Set build command: `pnpm build`
-3. Set publish directory: `out`
-4. Configure environment variables
+1. **Landing Page** → User sees the main landing page
+2. **Sign Up/Sign In** → User authenticates with Clerk
+3. **Dashboard** → Authenticated user sees their dashboard
+4. **Protected Routes** → All dashboard and API routes require authentication
 
-### Manual Deployment
-1. Build the project: `pnpm build`
-2. Export static files: `pnpm export`
-3. Deploy the `out` directory to your hosting provider
+## 📊 Database Schema
 
-## Contributing
+The application uses the following main entities:
+- **Users** - User profiles and authentication
+- **Influencers** - Influencer profiles and metrics
+- **Campaigns** - Marketing campaigns
+- **Posts** - Social media posts
+- **Activities** - User activity tracking
+- **Notifications** - User notifications
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy!
+
+### Environment Variables for Production
+
+Make sure to set these in your deployment platform:
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `CLERK_WEBHOOK_SECRET`
+- `DATABASE_URL`
+- `OPENAI_API_KEY` (optional)
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit your changes: `git commit -am 'Add feature'`
-4. Push to the branch: `git push origin feature-name`
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🆘 Support
 
-For support and questions, please open an issue on GitHub.
+If you encounter any issues or have questions:
+
+1. Check the [Issues](https://github.com/Rehan959/info_tracker/issues) page
+2. Create a new issue with detailed information
+3. Contact the maintainers
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/) for the amazing framework
+- [Clerk](https://clerk.com/) for authentication
+- [Neon](https://neon.tech/) for the database
+- [shadcn/ui](https://ui.shadcn.com/) for the beautiful components
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+
+---
+
+**Made with ❤️ by Rehan Shamsi**

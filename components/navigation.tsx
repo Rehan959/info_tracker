@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, ArrowLeft, Bell, Plus } from "lucide-react"
+import { TrendingUp, ArrowLeft, Bell, Plus, Users } from "lucide-react"
 import { UserButton, useUser } from "@clerk/nextjs"
 import dynamic from "next/dynamic"
 
@@ -66,22 +66,30 @@ export function Navigation({
           )}
           
           {showAddInfluencer && (
-            <Link href="/influencers">
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Influencer
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/influencers">
+                <Button size="sm" variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  View Influencers
+                </Button>
+              </Link>
+              <Link href="/add-influencer">
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add by Link
+                </Button>
+              </Link>
+            </div>
           )}
 
           {showAuth && !isSignedIn && (
             <div className="flex items-center gap-2">
-              <Link href="/sign-in">
+              <Link href="/auth/login">
                 <Button variant="outline" size="sm">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/sign-up">
+              <Link href="/auth/signup">
                 <Button size="sm">
                   Sign Up
                 </Button>
