@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, ArrowLeft, Bell, Plus, Users } from "lucide-react"
+import { UserButton, SignInButton, SignUpButton, useUser } from "@clerk/nextjs"
 
 interface NavigationProps {
   showAuth?: boolean
@@ -22,12 +23,7 @@ export function Navigation({
   showAddInfluencer = false,
   title
 }: NavigationProps) {
-  const [isSignedIn, setIsSignedIn] = React.useState(false)
-  React.useEffect(() => {
-    fetch('/api/auth/me').then(async (r) => {
-      setIsSignedIn(r.ok)
-    }).catch(() => setIsSignedIn(false))
-  }, [])
+  const { isSignedIn } = useUser()
 
   return (
     <header className="border-b bg-card">
@@ -82,22 +78,20 @@ export function Navigation({
 
           {showAuth && !isSignedIn && (
             <div className="flex items-center gap-2">
-              <Link href="/auth/login">
+              <SignInButton mode="modal">
                 <Button variant="outline" size="sm">
                   Sign In
                 </Button>
-              </Link>
-              <Link href="/auth/signup">
+              </SignInButton>
+              <SignUpButton mode="modal">
                 <Button size="sm">
                   Sign Up
                 </Button>
-              </Link>
+              </SignUpButton>
             </div>
           )}
           {isSignedIn && (
-            <form action="/api/auth/logout" method="post">
-              <Button type="submit" variant="outline" size="sm">Logout</Button>
-            </form>
+            <UserButton afterSignOutUrl="/landing" />
           )}
         </div>
       </div>

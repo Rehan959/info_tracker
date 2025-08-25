@@ -8,6 +8,7 @@ import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
+import { useUser } from "@clerk/nextjs"
 
 interface DashboardData {
   stats: {
@@ -40,8 +41,7 @@ interface DashboardData {
 }
 
 export default function UserDashboard() {
-  const [userName, setUserName] = useState<string>('User')
-  const [isLoaded, setIsLoaded] = useState<boolean>(false)
+  const { user, isLoaded: clerkLoaded } = useUser()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,20 +53,9 @@ export default function UserDashboard() {
     setMounted(true)
   }, [])
 
-  // Load user info from our API
-  useEffect(() => {
-    fetch('/api/auth/me').then(async (r) => {
-      if (r.ok) {
-        const u = await r.json()
-        setUserName(u.name || u.email || 'User')
-      }
-      setIsLoaded(true)
-    }).catch(() => setIsLoaded(true))
-  }, [])
-
   useEffect(() => {
     // Fetch real dashboard data
-    if (!isLoaded || !mounted) return
+    if (!clerkLoaded || !mounted) return
 
     const fetchDashboardData = async () => {
       try {
@@ -101,7 +90,7 @@ export default function UserDashboard() {
     const interval = setInterval(fetchDashboardData, 30000)
 
     return () => clearInterval(interval)
-  }, [isLoaded, mounted])
+  }, [clerkLoaded, mounted])
 
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {
@@ -118,7 +107,7 @@ export default function UserDashboard() {
   }
 
   // Loading state
-  if (!isLoaded || loading) {
+  if (!clerkLoaded || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation showNotifications={true} showAddInfluencer={true} />
@@ -183,7 +172,7 @@ export default function UserDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">Welcome back, {userName}! 👋</h2>
+              <h2 className="text-2xl font-bold">Welcome back, {user?.firstName || user?.emailAddresses[0]?.emailAddress || 'User'}! 👋</h2>
               <Sparkles className="h-5 w-5 text-yellow-500" />
             </div>
             {lastUpdated && (
