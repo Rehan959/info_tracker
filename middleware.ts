@@ -1,25 +1,14 @@
-import { authMiddleware } from "@clerk/nextjs";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export default authMiddleware({
-  publicRoutes: [
-    "/",
-    "/landing",
-    "/demo",
-    "/demo-analytics",
-    "/demo-dashboard", 
-    "/demo-influencers",
-    "/demo-campaigns",
-    "/analytics",
-    "/add-influencer",
-    "/api/influencers/fetch-profile",
-    "/api/demo-social-media",
-    "/api/demo-dashboard",
-    "/api/demo-influencers",
-    "/api/influencers",
-    "/api/dashboard",
-  ],
-});
+export function middleware(request: NextRequest) {
+  // Make all routes public - no authentication required
+  return NextResponse.next()
+}
 
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
-};
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
+}

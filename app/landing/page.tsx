@@ -26,9 +26,9 @@ export default function LandingPage() {
             analyze performance, and discover new opportunities in real-time.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/signup">
+            <Link href="/dashboard">
               <Button size="lg" className="w-full sm:w-auto">
-                Get Started Free
+                Go to Dashboard
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>

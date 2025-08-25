@@ -127,3 +127,6 @@ temp/
 
 # Prisma
 prisma/migrations/
+
+# clerk configuration (can include secrets)
+/.clerk/

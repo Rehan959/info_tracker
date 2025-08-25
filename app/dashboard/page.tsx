@@ -8,7 +8,6 @@ import Link from "next/link"
 import { Navigation } from "@/components/navigation"
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
-import { useUser } from "@clerk/nextjs"
 
 interface DashboardData {
   stats: {
@@ -41,7 +40,6 @@ interface DashboardData {
 }
 
 export default function UserDashboard() {
-  const { user, isLoaded: clerkLoaded } = useUser()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,8 +52,8 @@ export default function UserDashboard() {
   }, [])
 
   useEffect(() => {
-    // Fetch real dashboard data
-    if (!clerkLoaded || !mounted) return
+    // Fetch dashboard data
+    if (!mounted) return
 
     const fetchDashboardData = async () => {
       try {
@@ -90,7 +88,7 @@ export default function UserDashboard() {
     const interval = setInterval(fetchDashboardData, 30000)
 
     return () => clearInterval(interval)
-  }, [clerkLoaded, mounted])
+  }, [mounted])
 
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {
@@ -107,7 +105,7 @@ export default function UserDashboard() {
   }
 
   // Loading state
-  if (!clerkLoaded || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation showNotifications={true} showAddInfluencer={true} />
@@ -172,7 +170,7 @@ export default function UserDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">Welcome back, {user?.firstName || user?.emailAddresses[0]?.emailAddress || 'User'}! 👋</h2>
+              <h2 className="text-2xl font-bold">Welcome back, User! 👋</h2>
               <Sparkles className="h-5 w-5 text-yellow-500" />
             </div>
             {lastUpdated && (
@@ -366,7 +364,7 @@ export default function UserDashboard() {
                   </div>
                   <div className="text-sm text-muted-foreground">Estimated Value</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {performance.estimatedValue > 0 ? '+15% vs last month' : 'No data yet'}
+                    {performance.totalImpressions > 0 ? '+15% vs last month' : 'No data yet'}
                   </div>
                 </div>
               </div>
