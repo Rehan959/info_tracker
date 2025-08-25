@@ -40,17 +40,21 @@ export interface DashboardData {
 export class DashboardService {
   static async getDashboardData(userId: string): Promise<DashboardData> {
     const [
-      influencerStats,
+      influencersWithPosts,
       campaignStats,
       postStats,
       recentActivities,
       nextBrief
     ] = await Promise.all([
-      // Get influencer statistics
-      prisma.influencer.aggregate({
+      // Get influencers with recent posts to compute engagement accurately
+      prisma.influencer.findMany({
         where: { userId },
-        _count: { id: true },
-        _avg: { engagement: true }
+        include: {
+          posts: {
+            orderBy: { publishedAt: 'desc' },
+            take: 30,
+          }
+        }
       }),
 
       // Get campaign statistics
@@ -101,16 +105,31 @@ export class DashboardService {
       })
     ])
 
+    // Compute avg engagement per influencer from posts
+    const totalInfluencers = influencersWithPosts.length
+    let avgEngagement = 0
+    if (totalInfluencers > 0) {
+      const perInfluencerRates = influencersWithPosts.map(inf => {
+        const posts = inf.posts
+        const postCount = posts.length
+        if (postCount === 0 || !inf.followers || inf.followers <= 0) return 0
+        const interactions = posts.reduce((s, p) => s + (p.likes || 0) + (p.comments || 0) + (p.shares || 0), 0)
+        const perPost = interactions / postCount
+        return (perPost / inf.followers) * 100
+      })
+      const sumRates = perInfluencerRates.reduce((s, r) => s + r, 0)
+      avgEngagement = sumRates / totalInfluencers
+    }
+
     // Calculate estimated value (rough calculation based on reach and engagement)
     const totalReach = postStats._sum.reach || 0
     const totalImpressions = postStats._sum.impressions || 0
-    const avgEngagement = influencerStats._avg.engagement || 0
     
-    // Rough estimate: $0.01 per reach + $0.05 per engagement
-    const estimatedValue = (totalReach * 0.01) + (totalImpressions * avgEngagement * 0.05)
+    // Rough estimate: $0.01 per reach + $0.05 per engagement point per impression
+    const estimatedValue = (totalReach * 0.01) + (totalImpressions * (avgEngagement / 100) * 0.05)
 
     const stats: DashboardStats = {
-      totalInfluencers: influencerStats._count.id,
+      totalInfluencers,
       activeCampaigns: campaignStats._count.id,
       avgEngagement: parseFloat(avgEngagement.toFixed(1)),
       nextBrief: nextBrief?.createdAt.toISOString() || null

@@ -59,7 +59,7 @@ export default function DemoAnalyticsPage() {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/social-media')
+      const response = await fetch('/api/demo-social-media')
       
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data')

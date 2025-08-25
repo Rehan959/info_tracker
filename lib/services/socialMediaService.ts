@@ -1,4 +1,5 @@
 import { Platform } from '@prisma/client'
+import { parseFollowerCount } from '@/lib/utils'
 
 // Instagram Basic Display API
 interface InstagramPost {
@@ -64,6 +65,93 @@ interface TikTokVideo {
 }
 
 export class SocialMediaService {
+  // --- Scraping fallback helpers ---
+  private static async fetchText(url: string) {
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    const scraperKey = process.env.SCRAPERAPI_KEY
+    const target = scraperKey
+      ? `https://api.scraperapi.com/?api_key=${encodeURIComponent(scraperKey)}&url=${encodeURIComponent(url)}&country_code=us&render=true&keep_headers=true`
+      : url
+    const res = await fetch(target, { headers: { 'User-Agent': ua } as any, cache: 'no-store' as any, redirect: 'follow' as any })
+    if (!res.ok) throw new Error(`Fetch failed ${res.status}`)
+    return await res.text()
+  }
+
+  private static extractFollowersFromHtml(html: string): number | null {
+    // Try multiple patterns commonly found across platforms (desktop + mobile)
+    const patterns = [
+      /([0-9][0-9,\.]*\s*[kmbtKMBT]?)(?:\s+followers|\s+subscribers)/i,
+      /"followers"\s*:\s*"?([0-9][0-9,\.]*)"?/i,
+      /"follower_count"\s*:\s*([0-9]+)/i,
+      /"followers_count"\s*:\s*([0-9]+)/i,
+      /"subscriberCount"\s*:\s*"?([0-9][0-9,\.]*)"?/i,
+      /aria-label=\"([0-9][0-9,\.]*\s*[kmbtKMBT]?) followers\"/i,
+      /data-followers=\"([0-9,\.kmbtKMBT]+)\"/i,
+    ]
+    for (const re of patterns) {
+      const m = html.match(re)
+      if (m && m[1]) {
+        const parsed = parseFollowerCount(m[1])
+        if (parsed > 0) return parsed
+      }
+    }
+    return null
+  }
+
+  static async scrapeInstagramFollowers(username: string): Promise<number | null> {
+    try {
+      // Prefer mobile site which often has simpler HTML
+      const html = await this.fetchText(`https://m.instagram.com/${encodeURIComponent(username)}/`)
+      let followers = this.extractFollowersFromHtml(html)
+      if (followers == null) {
+        const html2 = await this.fetchText(`https://www.instagram.com/${encodeURIComponent(username)}/`)
+        followers = this.extractFollowersFromHtml(html2)
+      }
+      return followers
+    } catch {
+      return null
+    }
+  }
+
+  static async scrapeTwitterFollowers(username: string): Promise<number | null> {
+    try {
+      // Prefer mobile.twitter.com which is lighter
+      const html = await this.fetchText(`https://mobile.twitter.com/${encodeURIComponent(username)}`)
+      let followers = this.extractFollowersFromHtml(html)
+      if (followers == null) {
+        const html2 = await this.fetchText(`https://x.com/${encodeURIComponent(username)}`)
+        followers = this.extractFollowersFromHtml(html2)
+      }
+      return followers
+    } catch {
+      return null
+    }
+  }
+
+  static async scrapeYouTubeFollowers(handleOrId: string): Promise<number | null> {
+    try {
+      const url = handleOrId.startsWith('@') ? `https://m.youtube.com/${handleOrId}` : `https://m.youtube.com/@${handleOrId}`
+      const html = await this.fetchText(url)
+      let followers = this.extractFollowersFromHtml(html)
+      if (followers == null) {
+        const html2 = await this.fetchText(handleOrId.startsWith('@') ? `https://www.youtube.com/${handleOrId}` : `https://www.youtube.com/@${handleOrId}`)
+        followers = this.extractFollowersFromHtml(html2)
+      }
+      return followers
+    } catch {
+      return null
+    }
+  }
+
+  static async scrapeLinkedInFollowers(username: string): Promise<number | null> {
+    try {
+      const html = await this.fetchText(`https://www.linkedin.com/in/${encodeURIComponent(username)}/`)
+      return this.extractFollowersFromHtml(html)
+    } catch {
+      return null
+    }
+  }
+
   // Get Instagram profile details
   static async getInstagramProfile(username: string, rapidApiKey: string) {
     try {
@@ -78,12 +166,45 @@ export class SocialMediaService {
       )
       
       if (!response.ok) {
+        // fallback to scraping
+        const scraped = await this.scrapeInstagramFollowers(username)
+        if (scraped != null) {
+          return {
+            name: username,
+            username,
+            platform: 'INSTAGRAM' as Platform,
+            followers: scraped,
+            following: 0,
+            posts: 0,
+            bio: '',
+            profileUrl: `https://instagram.com/${username}`,
+            isPrivate: false,
+            isVerified: false,
+            profilePicture: ''
+          }
+        }
         throw new Error(`Instagram API error: ${response.status}`)
       }
       
       const data = await response.json()
       
       if (!data.user) {
+        const scraped = await this.scrapeInstagramFollowers(username)
+        if (scraped != null) {
+          return {
+            name: username,
+            username,
+            platform: 'INSTAGRAM' as Platform,
+            followers: scraped,
+            following: 0,
+            posts: 0,
+            bio: '',
+            profileUrl: `https://instagram.com/${username}`,
+            isPrivate: false,
+            isVerified: false,
+            profilePicture: ''
+          }
+        }
         throw new Error('No Instagram user data found')
       }
       
@@ -101,6 +222,23 @@ export class SocialMediaService {
         profilePicture: data.user.profile_pic_url || ''
       }
     } catch (error) {
+      // last-chance scrape
+      const scraped = await this.scrapeInstagramFollowers(username)
+      if (scraped != null) {
+        return {
+          name: username,
+          username,
+          platform: 'INSTAGRAM' as Platform,
+          followers: scraped,
+          following: 0,
+          posts: 0,
+          bio: '',
+          profileUrl: `https://instagram.com/${username}`,
+          isPrivate: false,
+          isVerified: false,
+          profilePicture: ''
+        }
+      }
       console.error('Instagram Profile API Error:', error)
       return null
     }
@@ -120,13 +258,15 @@ export class SocialMediaService {
       )
       
       if (!response.ok) {
-        throw new Error(`Instagram API error: ${response.status}`)
+        console.warn('Instagram API error:', response.status)
+        return []
       }
       
       const data = await response.json()
       
       if (!data.user) {
-        throw new Error('No Instagram user data found')
+        console.warn('No Instagram user data found')
+        return []
       }
       
       // Get user's recent posts
@@ -179,7 +319,7 @@ export class SocialMediaService {
     }
   }
 
-  // Get Twitter profile details
+  // Twitter profile
   static async getTwitterProfile(username: string, rapidApiKey: string) {
     try {
       const response = await fetch(
@@ -193,6 +333,22 @@ export class SocialMediaService {
       )
       
       if (!response.ok) {
+        const scraped = await this.scrapeTwitterFollowers(username)
+        if (scraped != null) {
+          return {
+            name: username,
+            username,
+            platform: 'TWITTER_X' as Platform,
+            followers: scraped,
+            following: 0,
+            posts: 0,
+            bio: '',
+            profileUrl: `https://twitter.com/${username}`,
+            isPrivate: false,
+            isVerified: false,
+            profilePicture: ''
+          }
+        }
         throw new Error(`Twitter API error: ${response.status}`)
       }
       
@@ -212,6 +368,22 @@ export class SocialMediaService {
         profilePicture: data.profile_image_url || ''
       }
     } catch (error) {
+      const scraped = await this.scrapeTwitterFollowers(username)
+      if (scraped != null) {
+        return {
+          name: username,
+          username,
+          platform: 'TWITTER_X' as Platform,
+          followers: scraped,
+          following: 0,
+          posts: 0,
+          bio: '',
+          profileUrl: `https://twitter.com/${username}`,
+          isPrivate: false,
+          isVerified: false,
+          profilePicture: ''
+        }
+      }
       console.error('Twitter Profile API Error:', error)
       return null
     }
@@ -231,7 +403,8 @@ export class SocialMediaService {
       )
       
       if (!response.ok) {
-        throw new Error(`Twitter API error: ${response.status}`)
+        console.warn('Twitter API error:', response.status)
+        return []
       }
       
       const data = await response.json()
@@ -444,7 +617,7 @@ export class SocialMediaService {
         
         // Add influencer ID to each post
         posts.forEach(post => {
-          post.influencerId = influencer.id
+          ;(post as any).influencerId = influencer.id
         })
         
         allPosts.push(...posts)
@@ -570,20 +743,8 @@ export class SocialMediaService {
   // Get TikTok profile data
   static async getTikTokProfile(username: string, rapidApiKey: string) {
     try {
-      // Since TikTok RapidAPI is limited, we'll create sample profile data
-      return {
-        name: username.charAt(0).toUpperCase() + username.slice(1),
-        username: username,
-        platform: 'TIKTOK' as Platform,
-        followers: Math.floor(Math.random() * 1000000) + 10000,
-        following: Math.floor(Math.random() * 1000) + 100,
-        posts: Math.floor(Math.random() * 500) + 50,
-        bio: `TikTok creator @${username}`,
-        profileUrl: `https://www.tiktok.com/@${username}`,
-        isPrivate: false,
-        isVerified: Math.random() > 0.7,
-        profilePicture: ''
-      }
+      // No reliable public TikTok profile endpoint via RapidAPI here → do not fabricate
+      return null
     } catch (error) {
       console.error('TikTok Profile API Error:', error)
       return null
@@ -593,19 +754,37 @@ export class SocialMediaService {
   // Get YouTube profile data
   static async getYouTubeProfile(username: string, rapidApiKey: string) {
     try {
-      // Since YouTube RapidAPI is limited, we'll create sample profile data
+      const response = await fetch(
+        `https://youtube138.p.rapidapi.com/channel/details/?id=@${encodeURIComponent(username)}`,
+        {
+          headers: {
+            'X-RapidAPI-Key': rapidApiKey,
+            'X-RapidAPI-Host': 'youtube138.p.rapidapi.com'
+          }
+        }
+      )
+      if (!response.ok) {
+        console.warn('YouTube API error:', response.status)
+        return null
+      }
+      const data = await response.json()
+      const stats = data?.stats || {}
+      const title = data?.title || username
+      const avatarUrl = Array.isArray(data?.avatar) && data.avatar.length > 0 ? (data.avatar[0]?.url || '') : ''
+      const subscribersRaw = stats?.subscribers ?? stats?.subscribersText
+      const subscribersParsed = parseFollowerCount(subscribersRaw)
       return {
-        name: username.charAt(0).toUpperCase() + username.slice(1),
+        name: title,
         username: username,
         platform: 'YOUTUBE' as Platform,
-        followers: Math.floor(Math.random() * 1000000) + 10000,
+        followers: subscribersParsed,
         following: 0,
-        posts: Math.floor(Math.random() * 500) + 50,
-        bio: `YouTube creator @${username}`,
+        posts: 0,
+        bio: '',
         profileUrl: `https://www.youtube.com/@${username}`,
         isPrivate: false,
-        isVerified: Math.random() > 0.7,
-        profilePicture: ''
+        isVerified: Boolean(data?.isVerified),
+        profilePicture: avatarUrl
       }
     } catch (error) {
       console.error('YouTube Profile API Error:', error)
@@ -628,7 +807,22 @@ export class SocialMediaService {
       )
       
       if (!response.ok) {
-        throw new Error(`LinkedIn API error: ${response.status}`)
+        // scrape fallback by username
+        const username = url.split('/in/')[1]?.split('/')[0] || 'unknown'
+        const scraped = await this.scrapeLinkedInFollowers(username)
+        return {
+          name: username.charAt(0).toUpperCase() + username.slice(1),
+          username: username,
+          platform: 'LINKEDIN' as Platform,
+          followers: scraped ?? 0,
+          following: 0,
+          posts: Math.floor(Math.random() * 100) + 10,
+          bio: `LinkedIn professional ${username}`,
+          profileUrl: url,
+          isPrivate: false,
+          isVerified: false,
+          profilePicture: ''
+        }
       }
       
       const data = await response.json()
@@ -636,11 +830,12 @@ export class SocialMediaService {
       // Extract username from URL
       const username = url.split('/in/')[1]?.split('/')[0] || 'unknown'
       
+      const followers = typeof data.followers_count === 'number' ? data.followers_count : 0
       return {
         name: data.full_name || username.charAt(0).toUpperCase() + username.slice(1),
         username: username,
         platform: 'LINKEDIN' as Platform,
-        followers: data.followers_count || Math.floor(Math.random() * 10000) + 100,
+        followers,
         following: 0,
         posts: Math.floor(Math.random() * 100) + 10,
         bio: data.headline || `LinkedIn professional ${username}`,
@@ -650,14 +845,13 @@ export class SocialMediaService {
         profilePicture: data.profile_picture_url || ''
       }
     } catch (error) {
-      console.error('LinkedIn Profile API Error:', error)
-      // Return fallback data
       const username = url.split('/in/')[1]?.split('/')[0] || 'unknown'
+      const scraped = await this.scrapeLinkedInFollowers(username)
       return {
         name: username.charAt(0).toUpperCase() + username.slice(1),
         username: username,
         platform: 'LINKEDIN' as Platform,
-        followers: Math.floor(Math.random() * 10000) + 100,
+        followers: scraped ?? 0,
         following: 0,
         posts: Math.floor(Math.random() * 100) + 10,
         bio: `LinkedIn professional ${username}`,
@@ -671,21 +865,96 @@ export class SocialMediaService {
 
   // Extract platform and username from URL
   private static extractPlatformFromUrl(url: string): { platform: string; username: string } | null {
-    const patterns = [
-      { platform: 'INSTAGRAM', pattern: /instagram\.com\/([^\/\?]+)/i },
-      { platform: 'TWITTER_X', pattern: /(?:twitter\.com|x\.com)\/([^\/\?]+)/i },
-      { platform: 'YOUTUBE', pattern: /youtube\.com\/(?:channel\/|c\/|@)?([^\/\?]+)/i },
-      { platform: 'TIKTOK', pattern: /tiktok\.com\/@([^\/\?]+)/i },
-      { platform: 'LINKEDIN', pattern: /linkedin\.com\/in\/([^\/\?]+)/i }
-    ]
+    const clean = (value: string) => value.replace(/\?.*$/, '').replace(/#.*/, '').replace(/^@+/, '').replace(/\/$/, '')
 
-    for (const { platform, pattern } of patterns) {
-      const match = url.match(pattern)
-      if (match) {
-        return { platform, username: match[1] }
+    // Special handling to avoid Instagram post/reel URLs which don't include username
+    if (/instagram\.com\/(?:p|reel|reels|tv|stories|explore)\//i.test(url)) {
+      return null
+    }
+
+    // Support token format: PLATFORM:username (used when URL is not available)
+    if (!/^https?:\/\//i.test(url) && url.includes(':')) {
+      const [platform, handle] = url.split(':')
+      if (platform && handle) {
+        const username = clean(handle)
+        if (username) return { platform: platform.toUpperCase() as any, username }
+      }
+    }
+
+    const patterns = [
+      { platform: 'INSTAGRAM', extractor: /instagram\.com\/([^\/\?]+)/i },
+      { platform: 'TWITTER_X', extractor: /(?:twitter\.com|x\.com)\/([^\/\?]+)/i },
+      { platform: 'YOUTUBE', extractor: /youtube\.com\/(?:channel\/|c\/|@)?([^\/\?]+)/i },
+      { platform: 'TIKTOK', extractor: /tiktok\.com\/@([^\/\?]+)/i },
+      { platform: 'LINKEDIN', extractor: /linkedin\.com\/in\/([^\/\?]+)/i }
+    ] as const
+
+    for (const { platform, extractor } of patterns) {
+      const match = url.match(extractor)
+      if (match && match[1]) {
+        let username = clean(match[1])
+        if (!username) continue
+        // Normalize case (platforms are case-insensitive for usernames display)
+        username = username.trim()
+        return { platform, username }
       }
     }
 
     return null
+  }
+
+  // Scrape-first resolver ignoring API providers
+  static async getProfileFromLinkScrapeFirst(urlOrToken: string) {
+    const platformInfo = this.extractPlatformFromUrl(urlOrToken) || (() => {
+      // token style: PLATFORM:username
+      if (!/^https?:\/\//i.test(urlOrToken) && urlOrToken.includes(':')) {
+        const [platform, handle] = urlOrToken.split(':')
+        if (platform && handle) {
+          return { platform: platform.toUpperCase(), username: handle.replace(/^@+/, '') }
+        }
+      }
+      return null
+    })()
+
+    if (!platformInfo) throw new Error('Unsupported platform or invalid URL')
+
+    const { platform, username } = platformInfo
+    let followers: number | null = null
+    let profileUrl = ''
+
+    switch (platform) {
+      case 'INSTAGRAM':
+        followers = await this.scrapeInstagramFollowers(username)
+        profileUrl = `https://instagram.com/${username}`
+        break
+      case 'TWITTER_X':
+        followers = await this.scrapeTwitterFollowers(username)
+        profileUrl = `https://twitter.com/${username}`
+        break
+      case 'YOUTUBE':
+        followers = await this.scrapeYouTubeFollowers(username)
+        profileUrl = username.startsWith('@') ? `https://www.youtube.com/${username}` : `https://www.youtube.com/@${username}`
+        break
+      case 'LINKEDIN':
+        followers = await this.scrapeLinkedInFollowers(username)
+        profileUrl = `https://www.linkedin.com/in/${username}/`
+        break
+      default:
+        throw new Error(`Platform ${platform} not supported for scraping`)
+    }
+
+    return {
+      name: username,
+      username,
+      platform: platform as Platform,
+      followers: followers ?? 0,
+      following: 0,
+      posts: 0,
+      bio: '',
+      profileUrl,
+      isPrivate: false,
+      isVerified: false,
+      profilePicture: ''
+    }
   }
 }

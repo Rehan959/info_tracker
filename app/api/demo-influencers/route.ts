@@ -3,12 +3,15 @@ import { DemoDataService } from '@/lib/services/demoDataService'
 
 export async function GET(request: NextRequest) {
   try {
-    const data = DemoDataService.getDashboardData()
-    return NextResponse.json(data)
+    const data = DemoDataService.getInfluencersData()
+    return NextResponse.json({
+      success: true,
+      influencers: data
+    })
   } catch (error) {
-    console.error('Demo Dashboard API Error:', error)
+    console.error('Demo Influencers API Error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch demo dashboard data' },
+      { error: 'Failed to fetch demo influencers data' },
       { status: 500 }
     )
   }

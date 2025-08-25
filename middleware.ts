@@ -1,37 +1,50 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/landing',
-  '/demo',
-  '/demo-analytics',
-  '/analytics',
-  '/add-influencer',
-  '/api/influencers/fetch-profile',
-  '/api/webhooks/clerk',
-  '/api/users/sync',
-  '/auth/login(.*)',
-  '/auth/signup(.*)',
-]);
+const PUBLIC_ROUTES: RegExp[] = [
+  /^\/$/,
+  /^\/landing$/,
+  /^\/demo(?:$|\/)/,
+  /^\/demo-analytics$/,
+  /^\/demo-dashboard$/,
+  /^\/demo-influencers$/,
+  /^\/demo-campaigns$/,
+  /^\/analytics$/,
+  /^\/add-influencer$/,
+  /^\/api\/influencers\/fetch-profile$/,
+  /^\/api\/demo-social-media$/,
+  /^\/api\/demo-dashboard$/,
+  /^\/api\/demo-influencers$/,
+  /^\/api\/auth\/(login|register|logout|me)$/,
+  /^\/auth\/(login|signup)(?:$|\/)/,
+  // Public read-only APIs so the site works for all visitors
+  /^\/api\/(influencers|dashboard)(?:$|\/)/,
+]
 
-export default clerkMiddleware(async (auth, req) => {
-  // If it's not a public route, protect it
-  if (!isPublicRoute(req)) {
-    await auth.protect({
-      // Redirect unauthenticated users to the sign-in page with absolute URL
-      unauthenticatedUrl: `${req.nextUrl.origin}/auth/login`,
-    });
+function isPublic(pathname: string): boolean {
+  return PUBLIC_ROUTES.some((re) => re.test(pathname))
+}
+
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
+  if (isPublic(pathname)) {
+    return NextResponse.next()
   }
-}, {
-  // Enable debug in development
-  debug: process.env.NODE_ENV === 'development',
-});
+
+  const token = req.cookies.get('auth_token')?.value
+  if (!token) {
+    const url = req.nextUrl.clone()
+    url.pathname = '/auth/login'
+    url.searchParams.set('redirect_url', pathname)
+    return NextResponse.redirect(url)
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     '/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
     '/(api|trpc)(.*)',
   ],
-};
+}

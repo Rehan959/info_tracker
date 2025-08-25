@@ -1,9 +1,22 @@
 import { PrismaClient, Platform, ActivityType, CampaignStatus, PostType, Sentiment } from '@prisma/client'
+import crypto from 'crypto'
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Starting database seed...')
+
+  // Helper to create a password hash compatible with app auth
+  async function hashPassword(password: string): Promise<string> {
+    const salt = crypto.randomBytes(16)
+    const derivedKey: Buffer = await new Promise((resolve, reject) => {
+      crypto.scrypt(password, salt, 64, (err, derived) => {
+        if (err) reject(err)
+        else resolve(derived)
+      })
+    })
+    return `${salt.toString('hex')}:${derivedKey.toString('hex')}`
+  }
 
   // Create a test user
   const user = await prisma.user.upsert({
@@ -13,6 +26,18 @@ async function main() {
       clerkId: 'test_user_123',
       email: 'test@example.com',
       name: 'Test User'
+    }
+  })
+
+  // Create a password-auth test user for local login
+  const passwordHash = await hashPassword('testpassword')
+  const pwUser = await prisma.user.upsert({
+    where: { email: 'testuser@example.com' },
+    update: {},
+    create: {
+      email: 'testuser@example.com',
+      name: 'Test Password User',
+      passwordHash
     }
   })
 
@@ -28,95 +53,112 @@ async function main() {
   })
 
   console.log('✅ Created test user:', user.email)
+  console.log('✅ Created password-auth test user:', pwUser.email)
   console.log('✅ Created current user:', currentUser.email)
   console.log('🔑 Use this Clerk ID to test:', 'user_31hFQep8Kb4jk2wNqlZDXB6F2Mn')
 
-  // Create sample influencers
-  const influencers = await Promise.all([
-    prisma.influencer.create({
-      data: {
-        userId: user.id,
-        name: 'Sarah Johnson',
-        username: 'sarahmarketing_linkedin',
-        platform: Platform.LINKEDIN,
-        followers: 125000,
-        engagement: 4.8,
-        bio: 'Digital Marketing Expert | Content Creator | Speaker',
-        category: 'Marketing',
-        isVerified: true
-      }
-    }),
-    prisma.influencer.create({
-      data: {
-        userId: user.id,
-        name: 'TechCrunch',
-        username: 'techcrunch_youtube',
-        platform: Platform.YOUTUBE,
-        followers: 4500000,
-        engagement: 3.2,
-        bio: 'Latest technology news and analysis',
-        category: 'Technology',
-        isVerified: true
-      }
-    }),
-    prisma.influencer.create({
-      data: {
-        userId: user.id,
-        name: 'John Doe',
-        username: 'johndoe_instagram',
-        platform: Platform.INSTAGRAM,
-        followers: 89000,
-        engagement: 6.1,
-        bio: 'Travel & Lifestyle Content Creator',
-        category: 'Lifestyle',
-        isVerified: false
-      }
-    }),
-    prisma.influencer.create({
-      data: {
-        userId: user.id,
-        name: 'Emma Wilson',
-        username: 'emmawilson_tiktok',
-        platform: Platform.TIKTOK,
-        followers: 320000,
-        engagement: 8.5,
-        bio: 'Fashion & Beauty Influencer',
-        category: 'Fashion',
-        isVerified: true
-      }
+  // Helper to upsert influencer by composite unique (username, platform, userId)
+  async function upsertInfluencer(u: { id: string }, data: {
+    name: string
+    username: string
+    platform: Platform
+    followers: number
+    engagement: number
+    bio?: string | null
+    category?: string | null
+    isVerified?: boolean
+  }) {
+    return prisma.influencer.upsert({
+      where: {
+        username_platform_userId: {
+          username: data.username,
+          platform: data.platform,
+          userId: u.id,
+        },
+      },
+      update: {
+        name: data.name,
+        followers: data.followers,
+        engagement: data.engagement,
+        bio: data.bio ?? undefined,
+        category: data.category ?? undefined,
+        isVerified: data.isVerified ?? undefined,
+      },
+      create: {
+        userId: u.id,
+        ...data,
+      },
     })
+  }
+
+  // Create sample influencers (idempotent)
+  const influencers = await Promise.all([
+    upsertInfluencer(user, {
+      name: 'Sarah Johnson',
+      username: 'sarahmarketing_linkedin',
+      platform: Platform.LINKEDIN,
+      followers: 125000,
+      engagement: 4.8,
+      bio: 'Digital Marketing Expert | Content Creator | Speaker',
+      category: 'Marketing',
+      isVerified: true,
+    }),
+    upsertInfluencer(user, {
+      name: 'TechCrunch',
+      username: 'techcrunch_youtube',
+      platform: Platform.YOUTUBE,
+      followers: 4500000,
+      engagement: 3.2,
+      bio: 'Latest technology news and analysis',
+      category: 'Technology',
+      isVerified: true,
+    }),
+    upsertInfluencer(user, {
+      name: 'John Doe',
+      username: 'johndoe_instagram',
+      platform: Platform.INSTAGRAM,
+      followers: 89000,
+      engagement: 6.1,
+      bio: 'Travel & Lifestyle Content Creator',
+      category: 'Lifestyle',
+      isVerified: false,
+    }),
+    upsertInfluencer(user, {
+      name: 'Emma Wilson',
+      username: 'emmawilson_tiktok',
+      platform: Platform.TIKTOK,
+      followers: 320000,
+      engagement: 8.5,
+      bio: 'Fashion & Beauty Influencer',
+      category: 'Fashion',
+      isVerified: true,
+    }),
   ])
 
   console.log('✅ Created', influencers.length, 'influencers')
 
-  // Create sample influencers for current user
+  // Create sample influencers for current user (idempotent)
   const currentUserInfluencers = await Promise.all([
-    prisma.influencer.create({
-      data: {
-        userId: currentUser.id,
-        name: 'Cristiano Ronaldo',
-        username: 'cristiano_instagram',
-        platform: Platform.INSTAGRAM,
-        followers: 650000000,
-        engagement: 8.2,
-        bio: 'Professional Footballer | CR7 Brand',
-        category: 'Sports',
-        isVerified: true
-      }
+    upsertInfluencer(currentUser, {
+      name: 'Cristiano Ronaldo',
+      username: 'cristiano_instagram_current',
+      platform: Platform.INSTAGRAM,
+      followers: 650000000,
+      engagement: 8.2,
+      bio: 'Professional Footballer | CR7 Brand',
+      category: 'Sports',
+      isVerified: true,
     }),
-    prisma.influencer.create({
-      data: {
-        userId: currentUser.id,
-        name: 'Elon Musk',
-        username: 'elonmusk_twitter',
-        platform: Platform.TWITTER_X,
-        followers: 180000000,
-        engagement: 12.5,
-        bio: 'CEO of Tesla and SpaceX',
-        category: 'Technology',
-        isVerified: true
-      }
-    })
+    upsertInfluencer(currentUser, {
+      name: 'Elon Musk',
+      username: 'elonmusk_twitter_current',
+      platform: Platform.TWITTER_X,
+      followers: 180000000,
+      engagement: 12.5,
+      bio: 'CEO of Tesla and SpaceX',
+      category: 'Technology',
+      isVerified: true,
+    }),
   ])
 
   console.log('✅ Created', currentUserInfluencers.length, 'influencers for current user')

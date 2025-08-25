@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { getUserIdFromRequest } from '@/lib/auth'
 
 // GET /api/influencers/[id] - Get specific influencer
 export async function GET(
@@ -8,15 +8,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -68,15 +65,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -146,8 +140,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -158,9 +151,7 @@ export async function DELETE(
     const { id } = params
 
     // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user) {
       return NextResponse.json(

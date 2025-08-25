@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Users, TrendingUp, Clock, Bell, Settings, User, LogOut, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { Navigation } from "@/components/navigation"
 import { useEffect, useState } from "react"
-import dynamic from "next/dynamic"
 
 interface DashboardData {
   stats: {
@@ -39,160 +37,105 @@ interface DashboardData {
   }>
 }
 
-export default function UserDashboard() {
-  const [userName, setUserName] = useState<string>('User')
-  const [isLoaded, setIsLoaded] = useState<boolean>(false)
+export default function DemoDashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
-  // Handle hydration
   useEffect(() => {
-    setMounted(true)
+    fetchDemoData()
   }, [])
 
-  // Load user info from our API
-  useEffect(() => {
-    fetch('/api/auth/me').then(async (r) => {
-      if (r.ok) {
-        const u = await r.json()
-        setUserName(u.name || u.email || 'User')
+  const fetchDemoData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/demo-dashboard')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch demo data')
       }
-      setIsLoaded(true)
-    }).catch(() => setIsLoaded(true))
-  }, [])
-
-  useEffect(() => {
-    // Fetch real dashboard data
-    if (!isLoaded || !mounted) return
-
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/dashboard', { redirect: 'manual' })
-        
-        let data: any
-        if (response.ok) {
-          data = await response.json()
-        } else if (response.status === 401 || response.status === 0) {
-          // Fallback to demo data when unauthorized or redirected by middleware
-          const demoRes = await fetch('/api/demo-dashboard')
-          if (!demoRes.ok) throw new Error('Failed to fetch demo dashboard data')
-          data = await demoRes.json()
-        } else {
-          throw new Error('Failed to fetch dashboard data')
-        }
-        
-        setDashboardData(data)
-        setLastUpdated(new Date().toLocaleTimeString())
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error)
-        setError('Failed to load dashboard data')
-      } finally {
-        setLoading(false)
-      }
+      
+      const data = await response.json()
+      setDashboardData(data)
+    } catch (error) {
+      console.error('Error fetching demo data:', error)
+      setError('Failed to load demo data')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    fetchDashboardData()
-
-    // Set up real-time updates every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000)
-
-    return () => clearInterval(interval)
-  }, [isLoaded, mounted])
-
-  // Don't render until mounted to prevent hydration issues
-  if (!mounted) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">Loading demo dashboard...</p>
           </div>
         </div>
       </div>
     )
   }
 
-  // Loading state
-  if (!isLoaded || loading) {
+  if (error || !dashboardData) {
     return (
       <div className="min-h-screen bg-background">
-        <Navigation showNotifications={true} showAddInfluencer={true} />
-        <main className="p-6">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading dashboard...</p>
-            </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error || 'No demo data available'}</p>
+            <Button onClick={fetchDemoData}>
+              Try Again
+            </Button>
           </div>
-        </main>
+        </div>
       </div>
     )
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation showNotifications={true} showAddInfluencer={true} />
-        <main className="p-6">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()}>
-                Try Again
-              </Button>
-            </div>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  // Use real data or fallback to empty state
-  const stats = dashboardData?.stats || {
-    totalInfluencers: 0,
-    activeCampaigns: 0,
-    avgEngagement: 0,
-    nextBrief: null
-  }
-
-  const performance = dashboardData?.performance || {
-    totalReach: 0,
-    totalImpressions: 0,
-    estimatedValue: 0,
-    avgLikes: 0,
-    avgComments: 0,
-    avgShares: 0,
-    avgViews: 0
-  }
-
-  const recentActivities = dashboardData?.recentActivities || []
+  const stats = dashboardData.stats
+  const performance = dashboardData.performance
+  const recentActivities = dashboardData.recentActivities
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation showNotifications={true} showAddInfluencer={true} />
+      {/* Header */}
+      <div className="border-b bg-card">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">Demo Dashboard</h1>
+              <Badge variant="secondary">Hardcoded Data</Badge>
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+            </div>
+            <div className="flex gap-2">
+              <Link href="/demo-analytics">
+                <Button variant="outline" size="sm">
+                  View Analytics
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button size="sm">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          </div>
+          <p className="text-muted-foreground mt-2">
+            This is a demo dashboard with hardcoded data. Sign up to see real-time data!
+          </p>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="p-6">
         {/* Welcome Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">Welcome back, {userName}! 👋</h2>
-              <Sparkles className="h-5 w-5 text-yellow-500" />
-            </div>
-            {lastUpdated && (
-              <div className="text-sm text-muted-foreground">
-                Last updated: {lastUpdated} 🔄
-              </div>
-            )}
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-2xl font-bold">Welcome to the Demo! 👋</h2>
+            <Sparkles className="h-5 w-5 text-yellow-500" />
           </div>
-          <p className="text-muted-foreground">Here's what's happening with your influencer campaigns today.</p>
+          <p className="text-muted-foreground">Here's what your influencer monitoring dashboard would look like with real data.</p>
         </div>
 
         {/* Stats Overview */}
@@ -205,7 +148,7 @@ export default function UserDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalInfluencers}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.totalInfluencers > 0 ? '+2 from last week' : 'No influencers yet'}
+                +2 from last week
               </p>
             </CardContent>
           </Card>
@@ -218,7 +161,7 @@ export default function UserDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.activeCampaigns}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.activeCampaigns > 0 ? '3 ending this week' : 'No active campaigns'}
+                3 ending this week
               </p>
             </CardContent>
           </Card>
@@ -231,7 +174,7 @@ export default function UserDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{stats.avgEngagement}%</div>
               <p className="text-xs text-muted-foreground">
-                {stats.avgEngagement > 0 ? '+0.3% from last period' : 'No engagement data'}
+                +0.3% from last period
               </p>
             </CardContent>
           </Card>
@@ -249,7 +192,7 @@ export default function UserDashboard() {
                 }
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.nextBrief ? 'Auto-generated report' : 'No briefs scheduled'}
+                Auto-generated report
               </p>
             </CardContent>
           </Card>
@@ -264,39 +207,32 @@ export default function UserDashboard() {
               <CardDescription>Latest updates from your monitored influencers</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentActivities.length > 0 ? (
-                recentActivities.map((activity, index) => (
-                  <div key={activity.id || index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                        activity.type === 'NEW_POST' ? 'bg-blue-100' :
-                        activity.type === 'ENGAGEMENT_MILESTONE' ? 'bg-green-100' :
-                        'bg-red-100'
-                      }`}>
-                        <span className="text-xs font-medium">
-                          {activity.influencer?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{activity.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {activity.influencer?.platform} • {new Date(activity.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
+              {recentActivities.map((activity, index) => (
+                <div key={activity.id || index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                      activity.type === 'NEW_POST' ? 'bg-blue-100' :
+                      activity.type === 'ENGAGEMENT_MILESTONE' ? 'bg-green-100' :
+                      'bg-red-100'
+                    }`}>
+                      <span className="text-xs font-medium">
+                        {activity.influencer?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                      </span>
                     </div>
-                    <Badge variant="secondary">
-                      {activity.type === 'NEW_POST' ? 'New' :
-                       activity.type === 'ENGAGEMENT_MILESTONE' ? 'Milestone' :
-                       'Mention'}
-                    </Badge>
+                    <div>
+                      <p className="text-sm font-medium">{activity.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.influencer?.platform} • {new Date(activity.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-muted-foreground mb-2">No recent activities</div>
-                  <p className="text-sm text-muted-foreground">Activities will appear here as you monitor influencers</p>
+                  <Badge variant="secondary">
+                    {activity.type === 'NEW_POST' ? 'New' :
+                     activity.type === 'ENGAGEMENT_MILESTONE' ? 'Milestone' :
+                     'Mention'}
+                  </Badge>
                 </div>
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -307,28 +243,34 @@ export default function UserDashboard() {
               <CardDescription>Manage your influencer monitoring</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href="/influencers">
+              <Link href="/auth/signup">
                 <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add New Influencer
+                  Sign Up for Real Data
                 </Button>
               </Link>
-              <Link href="/content">
+              <Link href="/demo-analytics">
                 <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <TrendingUp className="h-4 w-4 mr-2" />
-                  View Content Monitor
+                  View Demo Analytics
                 </Button>
               </Link>
-              <Link href="/briefs">
+              <Link href="/demo-influencers">
+                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  View Demo Influencers
+                </Button>
+              </Link>
+              <Link href="/demo-campaigns">
+                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  View Demo Campaigns
+                </Button>
+              </Link>
+              <Link href="/demo">
                 <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
                   <Clock className="h-4 w-4 mr-2" />
-                  Generate Trend Brief
-                </Button>
-              </Link>
-              <Link href="/automation">
-                <Button className="w-full justify-start bg-transparent hover:bg-muted/50" variant="outline">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Setup Automation
+                  Back to Demo Home
                 </Button>
               </Link>
             </CardContent>
@@ -346,43 +288,45 @@ export default function UserDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">
-                    {performance.totalReach > 0 ? 
-                      (performance.totalReach / 1000000).toFixed(1) + 'M' : 
-                      '0'
-                    }
+                    {(performance.totalReach / 1000000).toFixed(1) + 'M'}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Reach</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {performance.totalReach > 0 ? '+12% vs last month' : 'No data yet'}
+                    +12% vs last month
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">
-                    {performance.totalImpressions > 0 ? 
-                      (performance.totalImpressions / 1000).toFixed(0) + 'K' : 
-                      '0'
-                    }
+                    {(performance.totalImpressions / 1000).toFixed(0) + 'K'}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Impressions</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {performance.totalImpressions > 0 ? '+8% vs last month' : 'No data yet'}
+                    +8% vs last month
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary mb-2">
-                    {performance.estimatedValue > 0 ? 
-                      '$' + (performance.estimatedValue / 1000).toFixed(0) + 'K' : 
-                      '$0'
-                    }
+                    {'$' + (performance.estimatedValue / 1000).toFixed(0) + 'K'}
                   </div>
                   <div className="text-sm text-muted-foreground">Estimated Value</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {performance.estimatedValue > 0 ? '+15% vs last month' : 'No data yet'}
+                    +15% vs last month
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Demo Info Box */}
+        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-900 mb-2">This is a Demo</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Hardcoded Data:</strong> All numbers and metrics are pre-defined for demonstration</li>
+            <li>• <strong>No Authentication:</strong> This page works without signing in</li>
+            <li>• <strong>Real-time Features:</strong> Sign up to see live data updates and real influencer monitoring</li>
+            <li>• <strong>Full Functionality:</strong> The real app includes social media integration, campaign management, and more</li>
+          </ul>
         </div>
       </main>
     </div>

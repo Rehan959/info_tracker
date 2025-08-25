@@ -4,33 +4,31 @@ import { SocialMediaService } from '@/lib/services/socialMediaService'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url } = body
+    const { url, username, platform } = body
 
-    if (!url) {
+    if (!url && !(username && platform)) {
       return NextResponse.json(
-        { error: 'URL is required' },
+        { error: 'Provide either url or username+platform' },
         { status: 400 }
       )
     }
 
-    // Get RapidAPI key from environment
-    const rapidApiKey = process.env.RAPIDAPI_KEY
-    if (!rapidApiKey) {
+    const lookup = url || `${platform}:${username}`
+    const profileData: any = await SocialMediaService.getProfileFromLinkScrapeFirst(lookup)
+
+    if (!profileData) {
       return NextResponse.json(
-        { error: 'RapidAPI key not configured' },
-        { status: 500 }
+        { error: 'Profile not found or unsupported URL' },
+        { status: 404 }
       )
     }
 
-    // Fetch profile data using the social media service
-    const profileData = await SocialMediaService.getProfileFromLink(url, rapidApiKey)
-    
     return NextResponse.json({
       success: true,
       profile: profileData
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Fetch Profile API Error:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to fetch profile data' },

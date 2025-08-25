@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { SocialMediaService } from '@/lib/services/socialMediaService'
 import { prisma } from '@/lib/prisma'
+import { getUserIdFromRequest } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get user's influencers
+    // Get user's influencers by internal id
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
+      where: { id: userId }
     })
 
     if (!user) {
@@ -32,8 +32,9 @@ export async function GET(request: NextRequest) {
         id: true,
         username: true,
         platform: true,
-        accessToken: true,
-        apiKey: true
+        name: true,
+        followers: true,
+        engagement: true
       }
     })
 
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
         }
       }
     } catch (error) {
-      console.log('RapidAPI not available, using mock data:', error.message)
+      console.log('RapidAPI not available, using mock data:', (error as any).message)
     }
 
     // Use real data if available, otherwise fall back to mock data
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest) {
       topPosts: generateMockTopPosts()
     }
 
-    return NextResponse.json(mockData)
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Social Media API Error:', error)
     return NextResponse.json(

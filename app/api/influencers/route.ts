@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { getUserIdFromRequest } from '@/lib/auth'
+import { DemoDataService } from '@/lib/services/demoDataService'
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      // Public fallback: return demo influencers
+      const demo = DemoDataService.getInfluencersData()
+      return NextResponse.json({ success: true, influencers: demo })
     }
 
     // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user) {
       return NextResponse.json(
@@ -48,15 +45,12 @@ export async function GET(request: NextRequest) {
 // POST /api/influencers - Create new influencer
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
+    const user = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -105,7 +99,7 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(influencer, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating influencer:', error)
     if (error.code === 'P2002') {
       return NextResponse.json({ 

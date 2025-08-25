@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -204,6 +207,53 @@ function ContentCard({ content }) {
 }
 
 export default function ContentPage() {
+  const [items, setItems] = useState(mockContent)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/social-media', { redirect: 'manual' })
+        if (!res.ok) {
+          setLoading(false)
+          return
+        }
+        const data = await res.json()
+        // Map topPosts if available; otherwise keep mock
+        const posts = Array.isArray(data?.topPosts) ? data.topPosts : []
+        if (posts.length > 0) {
+          const mapped = posts.map((p, idx) => ({
+            id: p.id || idx,
+            influencer: p.platform || 'Creator',
+            handle: '@' + (p.platform || 'creator').toLowerCase(),
+            platform: p.platform || 'Instagram',
+            type: (p.postType || 'post').toLowerCase(),
+            content: p.title || 'Post',
+            image: '',
+            timestamp: new Date(p.publishedAt).toLocaleString(),
+            duration: undefined,
+            engagement: {
+              likes: p.likes || 0,
+              comments: p.comments || 0,
+              shares: p.shares || 0,
+              views: p.views || 0,
+            },
+            metrics: {
+              reach: (p.views || 0).toLocaleString(),
+              engagement_rate: (p.engagement || 0) + '%',
+            },
+          }))
+          setItems(mapped)
+        }
+      } catch (e) {
+        // keep mock
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -299,21 +349,25 @@ export default function ContentPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <AISummary content={mockContent} type="batch" />
+                <AISummary content={items.map(i => i.content)} type="batch" />
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {mockContent.map((content) => (
-                <ContentCard key={content.id} content={content} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-muted-foreground text-sm">Loading content…</div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {items.map((content) => (
+                  <ContentCard key={content.id} content={content} />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="trending" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {mockContent
-                .filter((c) => Number.parseFloat(c.metrics.engagement_rate) > 6)
+              {items
+                .filter((c) => parseFloat(String(c.metrics.engagement_rate).replace('%','')) > 6)
                 .map((content) => (
                   <ContentCard key={content.id} content={content} />
                 ))}
@@ -322,8 +376,8 @@ export default function ContentPage() {
 
           <TabsContent value="competitors" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {mockContent
-                .filter((c) => c.influencer.includes("Competitor"))
+              {items
+                .filter((c) => String(c.influencer).toLowerCase().includes("competitor"))
                 .map((content) => (
                   <ContentCard key={content.id} content={content} />
                 ))}

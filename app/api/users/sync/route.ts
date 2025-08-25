@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { UserService } from '@/lib/services/userService'
+import { prisma } from '@/lib/prisma'
+import { getUserIdFromRequest } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const userId = getUserIdFromRequest(request)
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -13,21 +13,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create or update user
-    const user = await UserService.findOrCreateUser(
-      userId,
-      `user-${userId}@example.com`,
-      'User'
-    )
+    console.log('Syncing user with internal ID:', userId)
+
+    // Create or update user in database by internal id
+    const user = await prisma.user.upsert({
+      where: { id: userId },
+      update: {},
+      create: {
+        id: userId,
+        email: `user-${userId}@example.com`,
+        name: 'Current User'
+      }
+    })
+
+    console.log('User synced successfully:', user)
 
     return NextResponse.json({
       success: true,
       user: {
         id: user.id,
-        clerkId: user.clerkId,
         email: user.email,
         name: user.name
-      }
+      },
+      message: 'User synced successfully'
     })
 
   } catch (error) {

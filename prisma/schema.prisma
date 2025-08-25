@@ -14,7 +14,10 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
-  clerkId   String   @unique
+  // Optional legacy Clerk identifier (kept for data continuity)
+  clerkId   String?  @unique
+  // Password-based auth
+  passwordHash String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

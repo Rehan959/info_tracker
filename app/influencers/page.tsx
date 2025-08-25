@@ -42,6 +42,14 @@ export default function InfluencersPage() {
   const [platformFilter, setPlatformFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editing, setEditing] = useState<Influencer | null>(null)
+  const [editFollowers, setEditFollowers] = useState<string>('')
+  const [editEngagement, setEditEngagement] = useState<string>('')
+  const [editBio, setEditBio] = useState<string>('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
   // Fetch influencers from API
   useEffect(() => {
     fetchInfluencers()
@@ -55,10 +63,20 @@ export default function InfluencersPage() {
   const fetchInfluencers = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/influencers')
+      const response = await fetch('/api/influencers', { redirect: 'manual' })
       if (response.ok) {
         const data = await response.json()
         setInfluencers(data.influencers)
+      } else if (response.status === 401 || response.status === 0) {
+        // Fallback to demo influencers when unauthorized
+        const demoRes = await fetch('/api/demo-influencers')
+        if (demoRes.ok) {
+          const demo = await demoRes.json()
+          // Demo endpoint returns { success, influencers }
+          setInfluencers(Array.isArray(demo) ? demo : (demo.influencers ?? []))
+        } else {
+          console.error('Failed to fetch demo influencers')
+        }
       } else {
         console.error('Failed to fetch influencers')
       }
@@ -149,6 +167,64 @@ export default function InfluencersPage() {
       return (followers / 1000).toFixed(1) + 'K'
     }
     return followers.toString()
+  }
+
+  function openEdit(influencer: Influencer) {
+    setEditing(influencer)
+    setEditFollowers(String(influencer.followers || ''))
+    setEditEngagement(String(influencer.engagement || ''))
+    setEditBio(influencer.bio || '')
+    setSaveError(null)
+    setIsEditOpen(true)
+  }
+
+  async function saveEdit() {
+    if (!editing) return
+
+    // Demo data doesn't have IDs in DB; guard
+    const isDemo = !editing.id || editing.id.startsWith('demo_')
+
+    if (isDemo) {
+      // Update only in UI for demo visitors
+      const updated: Influencer = {
+        ...editing,
+        followers: Math.max(0, Math.floor(Number(editFollowers) || 0)),
+        engagement: Math.max(0, Number(editEngagement) || 0),
+        bio: editBio,
+      }
+      setInfluencers(prev => prev.map(i => i.id === editing.id ? updated : i))
+      setIsEditOpen(false)
+      return
+    }
+
+    try {
+      setSaving(true)
+      setSaveError(null)
+      const res = await fetch(`/api/influencers/${editing.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          followers: Math.max(0, Math.floor(Number(editFollowers) || 0)),
+          engagement: Math.max(0, Number(editEngagement) || 0),
+          bio: editBio,
+          // keep existing identity fields intact in case the API expects them
+          name: editing.name,
+          username: editing.username,
+          platform: editing.platform,
+        })
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed to update influencer')
+      }
+      const updated = await res.json()
+      setInfluencers(prev => prev.map(i => i.id === editing.id ? { ...i, ...updated } : i))
+      setIsEditOpen(false)
+    } catch (e: any) {
+      setSaveError(e.message || 'Failed to save changes')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -288,7 +364,7 @@ export default function InfluencersPage() {
                         </a>
                       </Button>
                     )}
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => openEdit(influencer)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button 
@@ -305,6 +381,63 @@ export default function InfluencersPage() {
           </div>
         )}
       </main>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Influencer</DialogTitle>
+            <DialogDescription>Manually update follower count and details.</DialogDescription>
+          </DialogHeader>
+
+          {saveError && (
+            <div className="text-red-600 text-sm mb-2">{saveError}</div>
+          )}
+
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="followers" className="text-right">Followers</Label>
+              <Input id="followers" className="col-span-3" type="number" min={0} value={editFollowers} onChange={(e) => setEditFollowers(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="engagement" className="text-right">Engagement %</Label>
+              <Input id="engagement" className="col-span-3" type="number" min={0} step={0.1} value={editEngagement} onChange={(e) => setEditEngagement(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="bio" className="text-right pt-2">Bio</Label>
+              <Textarea id="bio" className="col-span-3" value={editBio} onChange={(e) => setEditBio(e.target.value)} />
+            </div>
+            {editing && (
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={async () => {
+                  try {
+                    setSaving(true)
+                    const res = await fetch(`/api/influencers/${editing.id}/refresh`, { method: 'GET' })
+                    if (!res.ok) throw new Error('Failed to refresh followers')
+                    const data = await res.json()
+                    const updated = data?.influencer
+                    if (updated?.followers != null) {
+                      setEditFollowers(String(updated.followers))
+                      setInfluencers(prev => prev.map(i => i.id === updated.id ? { ...i, followers: updated.followers } : i))
+                    }
+                  } catch (e: any) {
+                    setSaveError(e.message || 'Refresh failed')
+                  } finally {
+                    setSaving(false)
+                  }
+                }} disabled={saving}>
+                  {saving ? 'Refreshing…' : 'Refresh from Source'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

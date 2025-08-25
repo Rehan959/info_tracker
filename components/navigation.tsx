@@ -1,16 +1,9 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, ArrowLeft, Bell, Plus, Users } from "lucide-react"
-import { UserButton, useUser } from "@clerk/nextjs"
-import dynamic from "next/dynamic"
-
-// Dynamically import UserButton to avoid hydration issues
-const DynamicUserButton = dynamic(() => Promise.resolve(UserButton), {
-  ssr: false,
-  loading: () => <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-})
 
 interface NavigationProps {
   showAuth?: boolean
@@ -29,7 +22,12 @@ export function Navigation({
   showAddInfluencer = false,
   title
 }: NavigationProps) {
-  const { isLoaded, isSignedIn } = useUser()
+  const [isSignedIn, setIsSignedIn] = React.useState(false)
+  React.useEffect(() => {
+    fetch('/api/auth/me').then(async (r) => {
+      setIsSignedIn(r.ok)
+    }).catch(() => setIsSignedIn(false))
+  }, [])
 
   return (
     <header className="border-b bg-card">
@@ -96,9 +94,10 @@ export function Navigation({
               </Link>
             </div>
           )}
-
-          {isLoaded && isSignedIn && (
-            <DynamicUserButton afterSignOutUrl="/landing" />
+          {isSignedIn && (
+            <form action="/api/auth/logout" method="post">
+              <Button type="submit" variant="outline" size="sm">Logout</Button>
+            </form>
           )}
         </div>
       </div>
