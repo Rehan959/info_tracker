@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Instagram, Twitter, Youtube, Linkedin, 
-  Link as LinkIcon, Plus, CheckCircle, AlertCircle 
+  Link as LinkIcon, Plus, CheckCircle, AlertCircle, Star
 } from 'lucide-react'
 import { Navigation } from '@/components/navigation'
+import { getCelebritiesByPlatform, findCelebritiesByCategory, getCelebrityCategories } from '@/components/celebrityData'
 
 interface InfluencerLink {
   url: string
@@ -32,6 +33,16 @@ export default function AddInfluencerPage() {
   const [links, setLinks] = useState<InfluencerLink[]>([])
   const [newLink, setNewLink] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('all')
+
+  // Get celebrity suggestions for the selected platform
+  const celebritySuggestions = selectedPlatform === 'all' 
+    ? getCelebritiesByPlatform('INSTAGRAM', 3).concat(
+        getCelebritiesByPlatform('TWITTER', 2),
+        getCelebritiesByPlatform('YOUTUBE', 2),
+        getCelebritiesByPlatform('TIKTOK', 2)
+      )
+    : findCelebritiesByCategory(selectedPlatform, 8)
 
   // Platform detection patterns
   const platformPatterns = [
@@ -56,7 +67,7 @@ export default function AddInfluencerPage() {
     { 
       name: 'TIKTOK', 
       pattern: /tiktok\.com\/@([^\/\?]+)/i, 
-      icon: Linkedin, // TODO: Replace with TikTok icon when available
+      icon: Youtube, // Using YouTube icon as placeholder for TikTok
       color: 'bg-gradient-to-r from-pink-500 to-red-500'
     },
     { 
@@ -217,6 +228,25 @@ export default function AddInfluencerPage() {
     }
   }
 
+  const addCelebrityLink = (celebrity: any) => {
+    const platform = celebrity.platform === 'TWITTER' ? 'TWITTER_X' : celebrity.platform
+    const newInfluencer: InfluencerLink = {
+      url: celebrity.profileUrl,
+      platform: platform,
+      username: celebrity.username,
+      isValid: true,
+      isProcessing: false,
+      profileData: {
+        name: celebrity.name,
+        followers: celebrity.followers,
+        bio: celebrity.bio,
+        isVerified: celebrity.isVerified
+      }
+    }
+    
+    setLinks([...links, newInfluencer])
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation title="Add Influencer by Link" />
@@ -229,41 +259,109 @@ export default function AddInfluencerPage() {
           </p>
         </div>
 
-        {/* Add New Link */}
-        <Card className="mb-8">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Add New Influencer
-            </CardTitle>
+            <CardTitle>Add New Influencer</CardTitle>
             <CardDescription>
-              Paste any social media profile URL (Instagram, Twitter, YouTube, TikTok, LinkedIn)
+              Enter social media profile URLs to monitor influencers and track their performance
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Label htmlFor="profile-link" className="sr-only">
-                  Profile Link
-                </Label>
+          <CardContent className="space-y-6">
+            {/* Celebrity Suggestions */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-yellow-500" />
+                <Label className="text-base font-semibold">Popular Celebrities to Monitor</Label>
+              </div>
+              
+              {/* Platform Filter */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedPlatform === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedPlatform('all')}
+                >
+                  All Platforms
+                </Button>
+                {getCelebrityCategories().map(category => (
+                  <Button
+                    key={category}
+                    variant={selectedPlatform === category ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedPlatform(category)}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Celebrity Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {celebritySuggestions.map((celebrity, index) => (
+                  <div
+                    key={`${celebrity.platform}-${celebrity.username}`}
+                    className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => addCelebrityLink(celebrity)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getPlatformIcon(celebrity.platform)}
+                        <span className="text-sm font-medium text-gray-600">
+                          {celebrity.platform}
+                        </span>
+                      </div>
+                      {celebrity.isVerified && (
+                        <CheckCircle className="h-4 w-4 text-blue-500" />
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="font-semibold text-sm">{celebrity.name}</h4>
+                      <p className="text-xs text-gray-500">@{celebrity.username}</p>
+                      <p className="text-xs text-gray-600">
+                        {celebrity.followers.toLocaleString()} followers
+                      </p>
+                      <p className="text-xs text-gray-500 line-clamp-2">
+                        {celebrity.bio}
+                      </p>
+                    </div>
+                    
+                    <Button
+                      size="sm"
+                      className="w-full mt-2"
+                      variant="outline"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add to List
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <Label htmlFor="profile-url" className="text-base font-semibold">
+                Or Enter Custom Profile URL
+              </Label>
+              <div className="flex gap-2 mt-2">
                 <Input
-                  id="profile-link"
-                  type="url"
+                  id="profile-url"
                   placeholder="https://instagram.com/username or https://twitter.com/username"
                   value={newLink}
                   onChange={(e) => setNewLink(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addLink()}
                 />
+                <Button onClick={addLink} disabled={!newLink.trim()}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
               </div>
-              <Button onClick={addLink} disabled={!newLink.trim()}>
-                Add Link
-              </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Supported Platforms */}
-        <Card className="mb-8">
+        <Card className="mt-8">
           <CardHeader>
             <CardTitle>Supported Platforms</CardTitle>
             <CardDescription>
@@ -298,7 +396,7 @@ export default function AddInfluencerPage() {
 
         {/* Added Links */}
         {links.length > 0 && (
-          <Card>
+          <Card className="mt-8">
             <CardHeader>
               <CardTitle>Added Influencers ({links.length})</CardTitle>
               <CardDescription>
