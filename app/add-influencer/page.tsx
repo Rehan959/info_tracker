@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Instagram, Twitter, Youtube, Linkedin, 
-  Link as LinkIcon, Plus, CheckCircle, AlertCircle, Star
+  Link as LinkIcon, Plus, CheckCircle, AlertCircle, Star, Music
 } from 'lucide-react'
 import { Navigation } from '@/components/navigation'
 import { getCelebritiesByPlatform, findCelebritiesByCategory, getCelebrityCategories } from '@/components/celebrityData'
@@ -50,31 +50,31 @@ export default function AddInfluencerPage() {
       name: 'INSTAGRAM', 
       pattern: /instagram\.com\/([^\/\?]+)/i, 
       icon: Instagram,
-      color: 'bg-gradient-to-r from-purple-500 to-pink-500'
+      color: 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500'
     },
     { 
       name: 'TWITTER_X', 
       pattern: /(?:twitter\.com|x\.com)\/([^\/\?]+)/i, 
       icon: Twitter,
-      color: 'bg-gradient-to-r from-blue-400 to-blue-600'
+      color: 'bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600'
     },
     { 
       name: 'YOUTUBE', 
       pattern: /youtube\.com\/(?:channel\/|c\/|@)?([^\/\?]+)/i, 
       icon: Youtube,
-      color: 'bg-gradient-to-r from-red-500 to-red-700'
+      color: 'bg-gradient-to-br from-red-500 via-red-600 to-red-700'
     },
     { 
       name: 'TIKTOK', 
       pattern: /tiktok\.com\/@([^\/\?]+)/i, 
-      icon: Youtube, // Using YouTube icon as placeholder for TikTok
-      color: 'bg-gradient-to-r from-pink-500 to-red-500'
+      icon: Music,
+      color: 'bg-gradient-to-br from-pink-400 via-pink-500 to-red-500'
     },
     { 
       name: 'LINKEDIN', 
       pattern: /linkedin\.com\/in\/([^\/\?]+)/i, 
       icon: Linkedin,
-      color: 'bg-gradient-to-r from-blue-600 to-blue-800'
+      color: 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800'
     }
   ]
 
@@ -363,23 +363,29 @@ export default function AddInfluencerPage() {
         {/* Supported Platforms */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Supported Platforms</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5" />
+              Supported Platforms
+              <Badge variant="secondary" className="ml-2">
+                {platformPatterns.length} platforms
+              </Badge>
+            </CardTitle>
             <CardDescription>
-              We automatically detect and support these social media platforms
+              We automatically detect and support these social media platforms. Simply paste any profile URL and we'll handle the rest.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {platformPatterns.map((platform) => {
                 const Icon = platform.icon
                 return (
-                  <div key={platform.name} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <div className={`p-2 rounded-lg ${platform.color} text-white`}>
-                      <Icon className="h-5 w-5" />
+                  <div key={platform.name} className="group flex items-center gap-4 p-4 border rounded-xl hover:shadow-md transition-all duration-200 hover:border-primary/20">
+                    <div className={`p-3 rounded-xl ${platform.color} text-white shadow-lg group-hover:scale-110 transition-transform duration-200`}>
+                      <Icon className="h-6 w-6" />
                     </div>
-                    <div>
-                      <p className="font-medium">{formatPlatformName(platform.name)}</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex-1">
+                      <p className="font-semibold text-base">{formatPlatformName(platform.name)}</p>
+                      <p className="text-sm text-muted-foreground font-mono">
                         {platform.name === 'INSTAGRAM' && 'instagram.com/username'}
                         {platform.name === 'TWITTER_X' && 'twitter.com/username'}
                         {platform.name === 'YOUTUBE' && 'youtube.com/@username'}
